@@ -5,22 +5,25 @@ This repository contains implementations and experiments exploring superposition
 ## Project Structure
 
 ```
-├── images/           # Visualization outputs and diagrams
-├── runs/             # Training logs and experiment results
-├── scripts/         # Utility scripts and helpers
-├── environment.yaml  # Conda environment specification
-├── intro_transformer_superposition.py   # Basic transformer superposition examples
-├── intro_translation_superposition.py   # Translation model superposition examples
-├── transformer_superposition.py         # Advanced transformer implementations
-├── translation_superposition.py         # Advanced translation model experiments
-└── LICENSE          # Project license
+├── images/                               # Visualization outputs and diagrams
+├── runs/                                 # Training logs and experiment results
+├── scripts/                              # Utility scripts and helpers
+├── anthropic_toy_models.ipynb            # Jupyter notebook with toy model implementations
+├── environment.yaml                      # Conda environment specification
+├── intro_transformer_superposition.py     # Basic transformer superposition examples
+├── intro_translation_superposition.py     # Translation model superposition examples
+├── toy_models_config.yaml                # Configuration for toy model experiments
+├── toy_models_reproduction.py            # Scripts to reproduce toy model results
+├── transformer_superposition.py           # Advanced transformer implementations
+├── translation_superposition.py          # Advanced translation model experiments
+└── LICENSE                               # Project license
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-To run the experiments, you'll need Python 3.11 and conda installed. Set up the environment using:
+To run the experiments, you'll need Python 3.7+ and conda installed. Set up the environment using:
 
 ```bash
 conda env create -f environment.yaml
@@ -29,21 +32,28 @@ conda activate superposition
 
 ### Running Experiments
 
-The repository includes several example implementations:
+The repository includes several implementations:
 
-1. **Basic Transformer Superposition**
+1. **Toy Models**
+   ```bash
+   jupyter notebook anthropic_toy_models.ipynb
+   ```
+   Explore basic superposition concepts with simple model implementations.
+
+2. **Basic Examples**
    ```bash
    python intro_transformer_superposition.py
-   ```
-   Demonstrates basic superposition patterns in transformer architectures.
-
-2. **Translation Model Superposition**
-   ```bash
    python intro_translation_superposition.py
    ```
-   Shows how superposition manifests in translation tasks.
+   Demonstrates superposition patterns in transformer and translation architectures.
 
-3. **Advanced Experiments**
+3. **Toy Model Reproduction**
+   ```bash
+   python toy_models_reproduction.py
+   ```
+   Reproduces results from toy model experiments using configurations in `toy_models_config.yaml`.
+
+4. **Advanced Experiments**
    ```bash
    python transformer_superposition.py
    python translation_superposition.py
@@ -53,6 +63,7 @@ The repository includes several example implementations:
 ## Key Features
 
 - Implementation of superposition detection methods
+- Interactive toy models for understanding basic concepts
 - Visualization tools for analyzing learned representations
 - Comparative analysis across different model architectures
 - Experiments with various training configurations

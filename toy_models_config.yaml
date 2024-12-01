@@ -1,0 +1,11 @@
+toy_model_config:
+  model_name: toy_autoencoder
+  num_features: 5
+  num_hidden: 2
+  num_instances: 10
+  batch_size: 1024
+  num_of_steps: 10000
+  learning_rate: 1e-3
+  scheduler_type: constant
+
+
