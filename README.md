@@ -34,26 +34,20 @@ conda activate superposition
 
 The repository includes several implementations:
 
-1. **Toy Models**
+1. **Basic Examples**
    ```bash
-   jupyter notebook anthropic_toy_models.ipynb
-   ```
-   Explore basic superposition concepts with simple model implementations.
-
-2. **Basic Examples**
-   ```bash
-   python intro_transformer_superposition.py
-   python intro_translation_superposition.py
+   python3 intro_transformer_superposition.py
+   python3 intro_translation_superposition.py
    ```
    Demonstrates superposition patterns in transformer and translation architectures.
 
-3. **Toy Model Reproduction**
+2. **Toy Model Reproduction**
    ```bash
-   python toy_models_reproduction.py
+   python3 toy_models_reproduction.py
    ```
    Reproduces results from toy model experiments using configurations in `toy_models_config.yaml`.
 
-4. **Advanced Experiments**
+3. **Advanced Experiments**
    ```bash
    python transformer_superposition.py
    python translation_superposition.py
