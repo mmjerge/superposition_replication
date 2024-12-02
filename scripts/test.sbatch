@@ -10,4 +10,4 @@
 #SBATCH --constraint=gpupod
 #SBATCH --mem=256GB
 
-python3 intro_translation_superposition.py
+python3 translation_superposition_test.py
