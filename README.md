@@ -1,4 +1,4 @@
-# Model Superposition Replication Study
+# Superposition Replication Study
 
 This repository contains implementations and experiments exploring superposition phenomena in different neural network architectures. Superposition is a phenomenon where neural networks learn to encode multiple features in the same set of weights or neurons, effectively compressing information through overlapping representations.
 
