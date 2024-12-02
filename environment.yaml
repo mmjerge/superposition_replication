@@ -1,4 +1,4 @@
-name: ced
+name: superposition
 channels:
   - pytorch
   - nvidia
