@@ -72,7 +72,6 @@ class SuperpositionVisualizer:
     def plot_weight_vectors(self, step):
         """Create vector plot showing superposition in 2D space with enhanced visibility"""
         with torch.no_grad():
-            # Get weights and normalize them to make them more visible
             weights = self.model.input_projection.weight.detach().cpu().numpy()
             weights_2d = weights[:, :2]
             

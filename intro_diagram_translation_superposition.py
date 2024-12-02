@@ -93,37 +93,29 @@ class SuperpositionVisualizer:
         try:
             with torch.no_grad():
                 weights = self.model.encoder_bottleneck.weight.detach().cpu().numpy()
-                weights = weights[:4, :2]  # Take first 4 vectors, first 2 dimensions
+                weights = weights[:4, :2] 
                 
-                # Create figure
                 plt.clf()
                 fig = plt.figure(figsize=(10, 10))
                 ax = fig.add_subplot(111)
                 
-                # Plot each vector
                 colors = ['red', 'blue', 'green', 'purple']
                 for i, (vec, color) in enumerate(zip(weights, colors)):
-                    # Draw vector
                     plt.quiver(0, 0, vec[0], vec[1], 
                              angles='xy', scale_units='xy', scale=1,
                              color=color, label=f'Vector {i+1}')
                 
-                # Set equal aspect ratio and limits
                 plt.xlim(-1, 1)
                 plt.ylim(-1, 1)
                 
-                # Add axes lines
                 plt.axhline(y=0, color='k', linestyle='-', alpha=0.3)
                 plt.axvline(x=0, color='k', linestyle='-', alpha=0.3)
                 
-                # Add grid and legend
                 plt.grid(True, alpha=0.3)
                 plt.legend()
                 
-                # Add title
                 plt.title(f'Weight Vectors at Step {step}')
                 
-                # Save
                 plt.savefig(f'weight_plot_{step}.png')
                 self.writer.add_figure('weights', fig, step)
                 plt.close()
@@ -179,12 +171,12 @@ def train_model(model, train_loader, tokenizer, config):
 def main():
     config = {
         'base_model': 'Helsinki-NLP/opus-mt-en-fr',
-        'hidden_size': 16,      # Smaller hidden size
-        'batch_size': 8,        # Smaller batch size
+        'hidden_size': 16,      
+        'batch_size': 8,        
         'num_epochs': 3,
-        'learning_rate': 0.01,  # Larger learning rate
-        'max_samples': 500,     # Fewer samples
-        'viz_interval': 10      # More frequent visualization
+        'learning_rate': 0.01,  
+        'max_samples': 500,     
+        'viz_interval': 10      
     }
     
     print("Loading tokenizer...")
