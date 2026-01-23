@@ -27,15 +27,27 @@ superposition_replication/
 │       ├── logging.py               # Structured logging
 │       ├── reproducibility.py       # Seeding and device management
 │       └── visualization.py         # Plotting and TensorBoard utilities
+├── config/                           # Configuration files
+│   ├── config.yaml                   # Default experiment configuration
+│   ├── toy_models_config.yaml       # Legacy toy model config
+│   └── test.sbatch                   # SLURM batch script (HPC)
 ├── tests/
 │   └── tests.py                     # pytest test suite
-├── config.yaml                       # Default experiment configuration
+├── notebooks/
+│   └── anthropic_toy_models.ipynb   # Interactive toy model experiments
+├── plots/
+│   ├── intro_diagram_transformer_superposition.py
+│   └── intro_diagram_translation_superposition.py
+├── legacy/                           # Original standalone scripts
+│   ├── toy_models_reproduction.py
+│   ├── transformer_superposition.py
+│   └── translation_superposition.py
+├── images/                           # Generated visualizations
+├── runs/                             # TensorBoard logs
 ├── pyproject.toml                    # Package metadata and dependencies
 ├── uv.lock                           # Dependency lockfile (uv)
 ├── environment.yaml                  # Conda environment specification
-├── images/                           # Generated visualizations
-├── runs/                             # TensorBoard logs
-└── (legacy scripts)                  # Original standalone scripts
+└── LICENSE
 ```
 
 ## Installation
@@ -71,7 +83,7 @@ uv run python -m superposition train --model toy
 uv run python -m superposition train --model transformer --num-features 128 --num-hidden 64 --num-steps 5000
 
 # Run from a config file
-uv run python -m superposition train --config config.yaml
+uv run python -m superposition train --config config/config.yaml
 
 # Use a preset configuration
 uv run python -m superposition train --preset toy_large
@@ -124,7 +136,7 @@ compute_interference_heatmap(model, model_type="toy", save_path="images/interfer
 
 ### Configuration
 
-Experiments are configured via YAML files or CLI arguments. See `config.yaml` for the full schema:
+Experiments are configured via YAML files or CLI arguments. See `config/config.yaml` for the full schema:
 
 ```yaml
 name: my_experiment
