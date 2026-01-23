@@ -22,6 +22,8 @@ dependencies = [
     "scikit-learn",
     "tqdm",
     "pyyaml",
+    "nltk",
+    "pandas",
 ]
 
 [project.optional-dependencies]

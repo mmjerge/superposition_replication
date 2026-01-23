@@ -29,6 +29,11 @@ Examples:
   # Use a preset configuration
   python -m superposition train --preset toy_large
 
+  # Analyze a trained model
+  python -m superposition analyze --analysis interference --model toy --checkpoint model.pt
+  python -m superposition analyze --analysis activations --model translation --checkpoint model.pt
+  python -m superposition analyze --analysis embeddings --model translation --checkpoint model.pt
+
   # List available presets
   python -m superposition presets
         """,
@@ -64,6 +69,46 @@ Examples:
     train_parser.add_argument("--log-dir", type=str, help="TensorBoard log directory")
     train_parser.add_argument("--save-dir", type=str, help="Image save directory")
     train_parser.add_argument("--no-tensorboard", action="store_true", help="Disable TensorBoard")
+
+    # Analyze command
+    analyze_parser = subparsers.add_parser(
+        "analyze", help="Run analysis on a trained model"
+    )
+    analyze_parser.add_argument(
+        "--analysis", type=str, required=True,
+        choices=["activations", "interference", "embeddings"],
+        help="Type of analysis to run",
+    )
+    analyze_parser.add_argument(
+        "--model", type=str, required=True,
+        choices=["toy", "transformer", "translation"],
+        help="Model type",
+    )
+    analyze_parser.add_argument(
+        "--checkpoint", type=str,
+        help="Path to model checkpoint (.pt file)",
+    )
+    analyze_parser.add_argument(
+        "--config", type=str,
+        help="Path to YAML config used during training",
+    )
+    analyze_parser.add_argument(
+        "--save-dir", type=str, default="images",
+        help="Directory to save analysis outputs",
+    )
+    analyze_parser.add_argument(
+        "--top-k", type=int, default=10,
+        help="Top-k activations per neuron (for activations analysis)",
+    )
+    analyze_parser.add_argument(
+        "--max-samples", type=int, default=5000,
+        help="Max tokens/samples for analysis",
+    )
+    analyze_parser.add_argument(
+        "--method", type=str, default="tsne", choices=["tsne", "pca"],
+        help="Dimensionality reduction method (for embeddings analysis)",
+    )
+    analyze_parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
     # Presets command
     subparsers.add_parser("presets", help="List available preset configurations")
@@ -185,6 +230,155 @@ def run_train(config: ExperimentConfig) -> None:
         sys.exit(1)
 
 
+def run_analyze(args) -> None:
+    """Run analysis on a trained model."""
+    import torch
+
+    set_seed(args.seed)
+    device = get_device()
+    os.makedirs(args.save_dir, exist_ok=True)
+
+    model_type = args.model
+    analysis_type = args.analysis
+
+    logger.info(f"Analysis: {analysis_type} on {model_type} model")
+
+    # Load model
+    if model_type == "toy":
+        from superposition.models.toy import ToyModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["toy_small"]
+        model = ToyModel(
+            num_features=config.model.num_features,
+            num_hidden=config.model.num_hidden,
+            num_instances=config.model.num_instances,
+            device=device,
+        )
+        if args.checkpoint:
+            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
+            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+
+    elif model_type == "transformer":
+        from superposition.models.transformer import TransformerModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["transformer_small"]
+        model = TransformerModel(
+            num_features=config.model.num_features,
+            num_hidden=config.model.num_hidden,
+            num_instances=config.model.num_instances,
+            n_layers=config.model.n_layers,
+            n_heads=config.model.n_heads,
+            device=device,
+        )
+        if args.checkpoint:
+            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
+            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+
+    elif model_type == "translation":
+        from superposition.models.translation import TranslationModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["translation"]
+        model = TranslationModel(
+            base_model_name=config.model.base_model_name,
+            hidden_size=config.model.num_hidden,
+            device=device,
+        )
+        if args.checkpoint:
+            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
+            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+    else:
+        logger.error(f"Unknown model type: {model_type}")
+        sys.exit(1)
+
+    # Run the requested analysis
+    if analysis_type == "interference":
+        from superposition.analysis.interference import compute_interference_heatmap, compute_interference_per_instance
+
+        if model_type == "toy":
+            compute_interference_per_instance(model, save_dir=args.save_dir)
+        else:
+            compute_interference_heatmap(
+                model,
+                save_path=f"{args.save_dir}/interference_heatmap.png",
+                model_type=model_type,
+            )
+
+    elif analysis_type == "activations":
+        if model_type != "translation":
+            logger.error("Max-activating examples analysis requires a translation model")
+            sys.exit(1)
+
+        from superposition.analysis.max_activations import (
+            get_max_activating_examples,
+            find_polysemantic_neurons,
+            format_activation_table,
+        )
+        from superposition.utils.data import TranslationDataset, create_dataloaders
+
+        tokenizer = model.tokenizer
+        dataset = TranslationDataset(
+            tokenizer=tokenizer,
+            max_samples=args.max_samples,
+        )
+        _, val_loader = create_dataloaders(dataset, batch_size=16)
+
+        results = get_max_activating_examples(
+            model, val_loader, tokenizer, k=args.top_k
+        )
+        polysemantic = find_polysemantic_neurons(results)
+
+        # Print results
+        print("\n" + "=" * 80)
+        print("MAX-ACTIVATING EXAMPLES (All Neurons)")
+        print("=" * 80)
+        print(format_activation_table(results))
+
+        if polysemantic:
+            print("\n" + "=" * 80)
+            print(f"POLYSEMANTIC NEURONS ({len(polysemantic)} found)")
+            print("=" * 80)
+            print(format_activation_table(results, neuron_indices=polysemantic))
+
+        # Save results to file
+        output_path = f"{args.save_dir}/max_activations.txt"
+        with open(output_path, "w") as f:
+            f.write("Max-Activating Examples Analysis\n")
+            f.write("=" * 80 + "\n\n")
+            f.write(format_activation_table(results))
+            f.write(f"\n\nPolysemantic neurons: {polysemantic}\n")
+        logger.info(f"Results saved to {output_path}")
+
+    elif analysis_type == "embeddings":
+        if model_type != "translation":
+            logger.error("POS-tagged embedding analysis requires a translation model")
+            sys.exit(1)
+
+        from superposition.analysis.embeddings import (
+            extract_bottleneck_embeddings,
+            plot_embeddings_by_pos,
+        )
+        from superposition.utils.data import TranslationDataset, create_dataloaders
+
+        tokenizer = model.tokenizer
+        dataset = TranslationDataset(
+            tokenizer=tokenizer,
+            max_samples=args.max_samples,
+        )
+        _, val_loader = create_dataloaders(dataset, batch_size=16)
+
+        embeddings, tokens, _ = extract_bottleneck_embeddings(
+            model, val_loader, tokenizer, max_tokens=args.max_samples
+        )
+
+        plot_embeddings_by_pos(
+            embeddings,
+            tokens,
+            save_path=f"{args.save_dir}/embeddings_pos_colored.png",
+            sample_size=min(2000, len(tokens)),
+            method=args.method,
+        )
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -205,6 +399,9 @@ def main():
     if args.command == "train":
         config = resolve_config(args)
         run_train(config)
+
+    if args.command == "analyze":
+        run_analyze(args)
 
 
 if __name__ == "__main__":
