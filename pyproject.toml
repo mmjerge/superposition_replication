@@ -16,6 +16,8 @@ dependencies = [
     "datasets",
     "evaluate",
     "sacrebleu",
+    "sacremoses",
+    "sentencepiece",
     "tensorboard",
     "matplotlib",
     "seaborn",

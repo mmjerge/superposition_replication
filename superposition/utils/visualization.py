@@ -7,24 +7,47 @@ from torch.utils.tensorboard import SummaryWriter
 from typing import Optional
 import torch
 
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+
 
 class SuperpositionVisualizer:
     """Handles all visualization for superposition experiments.
 
-    Supports TensorBoard logging, weight vector plots, and embedding visualizations.
+    Supports TensorBoard and wandb logging, weight vector plots, and embedding visualizations.
     """
 
-    def __init__(self, log_dir: str = "runs/experiment", save_dir: str = "images"):
+    def __init__(
+        self,
+        log_dir: str = "runs/experiment",
+        save_dir: str = "images",
+        use_wandb: bool = False,
+        wandb_project: Optional[str] = None,
+        wandb_config: Optional[dict] = None,
+    ):
         self.writer = SummaryWriter(log_dir)
         self.save_dir = save_dir
+        self.use_wandb = use_wandb and WANDB_AVAILABLE
+
+        if self.use_wandb:
+            if not WANDB_AVAILABLE:
+                print("Warning: wandb requested but not installed. Install with: uv sync --extra wandb")
+                self.use_wandb = False
 
     def log_scalar(self, tag: str, value: float, step: int) -> None:
-        """Log a scalar value to TensorBoard."""
+        """Log a scalar value to TensorBoard and wandb."""
         self.writer.add_scalar(tag, value, step)
+        if self.use_wandb:
+            wandb.log({tag: value}, step=step)
 
     def log_histogram(self, tag: str, values: np.ndarray, step: int) -> None:
-        """Log a histogram to TensorBoard."""
+        """Log a histogram to TensorBoard and wandb."""
         self.writer.add_histogram(tag, values, step)
+        if self.use_wandb:
+            wandb.log({tag: wandb.Histogram(values)}, step=step)
 
     def plot_weight_vectors_2d(
         self,
@@ -81,6 +104,10 @@ class SuperpositionVisualizer:
 
         plt.savefig(save_path, dpi=300, bbox_inches="tight", facecolor="white")
         self.writer.add_figure("weight_vectors", fig, step)
+
+        if self.use_wandb:
+            wandb.log({"weight_vectors": wandb.Image(fig)}, step=step)
+
         plt.close(fig)
 
     def plot_intro_diagram(
@@ -161,6 +188,10 @@ class SuperpositionVisualizer:
 
         plt.savefig(save_path, dpi=200, bbox_inches="tight")
         self.writer.add_figure("translation_weights", fig, step)
+
+        if self.use_wandb:
+            wandb.log({"translation_weights": wandb.Image(fig)}, step=step)
+
         plt.close(fig)
 
     def plot_embeddings_3d(
@@ -204,8 +235,10 @@ class SuperpositionVisualizer:
         plt.close(fig)
 
     def close(self) -> None:
-        """Close the TensorBoard writer."""
+        """Close the TensorBoard writer and finish wandb run."""
         self.writer.close()
+        if self.use_wandb:
+            wandb.finish()
 
     @staticmethod
     def _style_vector_axes(ax) -> None:

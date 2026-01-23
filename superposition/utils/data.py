@@ -2,6 +2,7 @@
 
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data.distributed import DistributedSampler
 from typing import Optional, Tuple
 
 
@@ -48,8 +49,8 @@ class TranslationDataset(Dataset):
         split: str = "train",
         max_length: int = 128,
         max_samples: Optional[int] = None,
-        dataset_name: str = "iwslt2017",
-        dataset_config: str = "iwslt2017-en-fr",
+        dataset_name: str = "wmt14",
+        dataset_config: str = "fr-en",
         src_lang: str = "en",
         tgt_lang: str = "fr",
     ):
@@ -60,7 +61,8 @@ class TranslationDataset(Dataset):
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
 
-        dataset = load_dataset(dataset_name, dataset_config, trust_remote_code=True)[split]
+        # Load dataset without trust_remote_code (uses standard Parquet format)
+        dataset = load_dataset(dataset_name, dataset_config, split=split)
         if max_samples:
             dataset = dataset.select(range(min(max_samples, len(dataset))))
         self.dataset = dataset
@@ -70,8 +72,15 @@ class TranslationDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict:
         item = self.dataset[idx]
-        src_text = item["translation"][self.src_lang]
-        tgt_text = item["translation"][self.tgt_lang]
+
+        # Handle different dataset formats
+        if "translation" in item:
+            src_text = item["translation"][self.src_lang]
+            tgt_text = item["translation"][self.tgt_lang]
+        else:
+            # WMT format uses direct language keys
+            src_text = item[self.src_lang]
+            tgt_text = item[self.tgt_lang]
 
         src_encoding = self.tokenizer(
             src_text,
@@ -100,6 +109,7 @@ def create_dataloaders(
     batch_size: int,
     train_split: float = 0.8,
     num_workers: int = 0,
+    distributed: bool = False,
 ) -> Tuple[DataLoader, DataLoader]:
     """Split a dataset and create train/val dataloaders.
 
@@ -108,6 +118,7 @@ def create_dataloaders(
         batch_size: Batch size for both loaders.
         train_split: Fraction of data for training.
         num_workers: Number of dataloader workers.
+        distributed: Whether to use DistributedSampler for multi-GPU training.
 
     Returns:
         Tuple of (train_loader, val_loader).
@@ -116,11 +127,30 @@ def create_dataloaders(
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
-    )
-    val_loader = DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
-    )
+    if distributed:
+        train_sampler = DistributedSampler(train_dataset, shuffle=True)
+        val_sampler = DistributedSampler(val_dataset, shuffle=False)
+
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            sampler=train_sampler,
+            num_workers=num_workers,
+            pin_memory=True,
+        )
+        val_loader = DataLoader(
+            val_dataset,
+            batch_size=batch_size,
+            sampler=val_sampler,
+            num_workers=num_workers,
+            pin_memory=True,
+        )
+    else:
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+        )
+        val_loader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
+        )
 
     return train_loader, val_loader

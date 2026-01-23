@@ -2,12 +2,15 @@
 
 import numpy as np
 import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 from tqdm import tqdm
 from typing import Optional
 
 from superposition.config import ExperimentConfig
 from superposition.utils.logging import get_logger
 from superposition.utils.visualization import SuperpositionVisualizer
+from superposition.utils.reproducibility import is_main_process
 
 logger = get_logger(__name__)
 
@@ -16,15 +19,46 @@ class Trainer:
     """Unified trainer for superposition experiments.
 
     Handles training loops for toy, transformer, and translation models with
-    consistent logging, visualization, and checkpointing.
+    consistent logging, visualization, and checkpointing. Supports both single-GPU
+    and distributed multi-GPU training.
     """
 
-    def __init__(self, config: ExperimentConfig):
+    def __init__(
+        self,
+        config: ExperimentConfig,
+        rank: int = 0,
+        world_size: int = 1,
+    ):
         self.config = config
-        self.visualizer = SuperpositionVisualizer(
-            log_dir=f"{config.visualization.log_dir}/{config.name}",
-            save_dir=config.visualization.save_dir,
-        )
+        self.rank = rank
+        self.world_size = world_size
+        self.is_distributed = world_size > 1
+
+        # Only initialize wandb and visualizer on main process
+        if is_main_process():
+            # Initialize wandb if configured
+            wandb_config = None
+            if config.visualization.use_wandb:
+                try:
+                    import wandb
+                    wandb.init(
+                        project=config.visualization.wandb_project or "superposition-replication",
+                        name=config.name,
+                        config=config.to_dict(),
+                    )
+                    wandb_config = config.to_dict()
+                except ImportError:
+                    logger.warning("wandb not installed. Install with: uv sync --extra wandb")
+
+            self.visualizer = SuperpositionVisualizer(
+                log_dir=f"{config.visualization.log_dir}/{config.name}",
+                save_dir=config.visualization.save_dir,
+                use_wandb=config.visualization.use_wandb,
+                wandb_project=config.visualization.wandb_project,
+                wandb_config=wandb_config,
+            )
+        else:
+            self.visualizer = None
 
     def train_superposition_model(self, model) -> dict:
         """Train a toy or transformer superposition model.
@@ -35,6 +69,10 @@ class Trainer:
         Returns:
             Dictionary with training metrics.
         """
+        # Wrap model with DDP if distributed
+        if self.is_distributed:
+            model = DDP(model, device_ids=[self.rank])
+
         cfg = self.config.training
         lr = cfg.learning_rate
         num_steps = cfg.num_steps
@@ -52,40 +90,52 @@ class Trainer:
         metrics = {"losses": [], "final_loss": 0.0}
         running_loss = 0.0
 
-        logger.info(f"Starting training: {num_steps} steps, batch_size={batch_size}, lr={lr}")
+        if is_main_process():
+            logger.info(f"Starting training: {num_steps} steps, batch_size={batch_size}, lr={lr}")
+            if self.is_distributed:
+                logger.info(f"Distributed training on {self.world_size} GPUs")
 
-        with tqdm(range(num_steps), desc="Training", ncols=100) as pbar:
-            for step in pbar:
-                # Update learning rate
-                step_lr = lr * lr_fn(step)
-                for group in optimizer.param_groups:
-                    group["lr"] = step_lr
+        # Only show progress bar on main process
+        pbar = tqdm(range(num_steps), desc="Training", ncols=100, disable=not is_main_process())
 
-                optimizer.zero_grad(set_to_none=True)
-                batch = model.generate_data(batch_size)
-                output = model(batch)
-                loss = model.compute_loss(batch, output)
-                loss.backward()
-                optimizer.step()
+        for step in pbar:
+            # Update learning rate
+            step_lr = lr * lr_fn(step)
+            for group in optimizer.param_groups:
+                group["lr"] = step_lr
 
-                loss_val = loss.item()
-                running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
-                metrics["losses"].append(loss_val)
+            optimizer.zero_grad(set_to_none=True)
 
+            # Get the actual model (unwrap DDP if needed)
+            actual_model = model.module if isinstance(model, DDP) else model
+            batch = actual_model.generate_data(batch_size)
+            output = model(batch)
+            loss = actual_model.compute_loss(batch, output)
+            loss.backward()
+            optimizer.step()
+
+            loss_val = loss.item()
+            running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
+            metrics["losses"].append(loss_val)
+
+            if is_main_process():
                 pbar.set_postfix(loss=f"{loss_val:.4f}", avg=f"{running_loss:.4f}", lr=f"{step_lr:.2e}")
 
-                # Logging and visualization
+                # Logging and visualization (only on main process)
                 if self.config.visualization.use_tensorboard:
                     self.visualizer.log_scalar("Loss/train", loss_val, step)
                     self.visualizer.log_scalar("LR", step_lr, step)
 
                 viz_interval = self.config.visualization.viz_interval
                 if step % viz_interval == 0:
-                    self._visualize_model(model, step)
+                    self._visualize_model(actual_model, step)
 
         metrics["final_loss"] = running_loss
-        logger.info(f"Training complete. Final avg loss: {running_loss:.6f}")
-        self.visualizer.close()
+
+        if is_main_process():
+            logger.info(f"Training complete. Final avg loss: {running_loss:.6f}")
+            self.visualizer.close()
+
         return metrics
 
     def train_translation_model(self, model, train_loader, val_loader=None) -> dict:
@@ -99,48 +149,71 @@ class Trainer:
         Returns:
             Dictionary with training metrics.
         """
+        # Wrap model with DDP if distributed
+        if self.is_distributed:
+            model = DDP(model, device_ids=[self.rank])
+
         cfg = self.config.training
-        optimizer = torch.optim.AdamW(model.get_trainable_parameters(), lr=cfg.learning_rate)
-        device = model._device
+        actual_model = model.module if isinstance(model, DDP) else model
+        optimizer = torch.optim.AdamW(actual_model.get_trainable_parameters(), lr=cfg.learning_rate)
+        device = actual_model._device
 
         metrics = {"epoch_losses": [], "bleu_scores": []}
 
-        logger.info(f"Starting translation training: {cfg.num_epochs} epochs, lr={cfg.learning_rate}")
+        if is_main_process():
+            logger.info(f"Starting translation training: {cfg.num_epochs} epochs, lr={cfg.learning_rate}")
+            if self.is_distributed:
+                logger.info(f"Distributed training on {self.world_size} GPUs")
 
         for epoch in range(cfg.num_epochs):
+            # Set epoch for DistributedSampler if using distributed training
+            if self.is_distributed and hasattr(train_loader.sampler, "set_epoch"):
+                train_loader.sampler.set_epoch(epoch)
+
             model.train()
             running_loss = 0.0
 
-            with tqdm(train_loader, desc=f"Epoch {epoch + 1}/{cfg.num_epochs}") as pbar:
-                for i, batch in enumerate(pbar):
-                    optimizer.zero_grad()
-                    batch = {k: v.to(device) for k, v in batch.items()}
-                    outputs = model(**batch)
-                    loss = outputs.loss
-                    loss.backward()
-                    optimizer.step()
+            pbar = tqdm(
+                train_loader,
+                desc=f"Epoch {epoch + 1}/{cfg.num_epochs}",
+                disable=not is_main_process()
+            )
 
-                    loss_val = loss.item()
-                    running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
+            for i, batch in enumerate(pbar):
+                optimizer.zero_grad()
+                batch = {k: v.to(device) for k, v in batch.items()}
+                outputs = model(**batch)
+                loss = outputs.loss
+                loss.backward()
+                optimizer.step()
+
+                loss_val = loss.item()
+                running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
+
+                if is_main_process():
                     pbar.set_postfix(loss=f"{loss_val:.4f}", avg=f"{running_loss:.4f}")
 
                     global_step = epoch * len(train_loader) + i
                     if self.config.visualization.use_tensorboard and i % self.config.visualization.viz_interval == 0:
                         self.visualizer.log_scalar("Loss/train", loss_val, global_step)
-                        weights = model.get_bottleneck_weights().cpu().numpy()
+                        weights = actual_model.get_bottleneck_weights().cpu().numpy()
                         self.visualizer.log_histogram("bottleneck/weights", weights, global_step)
 
             metrics["epoch_losses"].append(running_loss)
-            logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
 
-            # Validation with BLEU
-            if val_loader is not None:
-                bleu_score = self._evaluate_translation(model, val_loader)
-                metrics["bleu_scores"].append(bleu_score)
-                if self.config.visualization.use_tensorboard:
-                    self.visualizer.log_scalar("BLEU/validation", bleu_score, epoch)
+            if is_main_process():
+                logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
 
-        self.visualizer.close()
+                # Validation with BLEU (only on main process)
+                if val_loader is not None:
+                    bleu_score = self._evaluate_translation(actual_model, val_loader)
+                    metrics["bleu_scores"].append(bleu_score)
+                    if self.config.visualization.use_tensorboard:
+                        self.visualizer.log_scalar("BLEU/validation", bleu_score, epoch)
+
+        if is_main_process():
+            self.visualizer.close()
+
         return metrics
 
     def _visualize_model(self, model, step: int) -> None:

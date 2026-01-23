@@ -69,6 +69,9 @@ uv sync --extra wandb
 
 ```bash
 pip install -e .
+
+# With wandb support
+pip install -e ".[wandb]"
 ```
 
 ## Usage
@@ -155,7 +158,76 @@ visualization:
   viz_interval: 100
   log_dir: runs
   save_dir: images
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: null
 ```
+
+### Experiment Tracking
+
+The repository supports both **TensorBoard** and **Weights & Biases** for experiment tracking:
+
+#### TensorBoard (default)
+
+```bash
+# TensorBoard is enabled by default
+uv run python -m superposition train --model toy
+
+# View logs
+tensorboard --logdir runs
+```
+
+#### Weights & Biases
+
+```bash
+# Enable wandb via CLI
+uv run python -m superposition train --model toy --wandb --wandb-project my-project
+
+# Or via config file
+# Set use_wandb: true in your YAML config
+```
+
+Both logging systems can be used simultaneously. wandb requires the optional dependency:
+```bash
+uv sync --extra wandb
+```
+
+### Multi-GPU Training (DistributedDataParallel)
+
+The repository supports distributed training across multiple GPUs using PyTorch's DistributedDataParallel (DDP):
+
+```bash
+# Train on 4 GPUs
+torchrun --nproc_per_node=4 -m superposition train --model translation --wandb --wandb-project my-project
+
+# Train on 8 GPUs with custom parameters
+torchrun --nproc_per_node=8 -m superposition train \
+  --model translation \
+  --num-hidden 512 \
+  --batch-size 32 \
+  --num-epochs 20 \
+  --wandb --wandb-project superposition-study
+
+# Train across multiple nodes (e.g., 2 nodes with 4 GPUs each)
+# On node 0:
+torchrun --nproc_per_node=4 --nnodes=2 --node_rank=0 --master_addr=NODE0_IP --master_port=29500 \
+  -m superposition train --model translation --wandb
+
+# On node 1:
+torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 --master_addr=NODE0_IP --master_port=29500 \
+  -m superposition train --model translation --wandb
+```
+
+**Key features:**
+- Automatic model parallelization with DDP
+- Efficient gradient synchronization across GPUs
+- Linear scaling with number of GPUs
+- Logging and visualization only on rank 0 (avoids duplicates)
+
+**Note:** When using distributed training:
+- Batch size is per GPU (effective batch size = batch_size × num_gpus)
+- Only the main process (rank 0) logs to TensorBoard/wandb
+- Each process gets a slightly different random seed for better exploration
 
 ## Models
 

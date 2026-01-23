@@ -23,6 +23,9 @@ Examples:
   # Run transformer with custom parameters
   python -m superposition train --model transformer --num-features 128 --num-hidden 64
 
+  # Run with Weights & Biases logging
+  python -m superposition train --model toy --wandb --wandb-project my-superposition-study
+
   # Run from a config file
   python -m superposition train --config config/config.yaml
 
@@ -69,6 +72,8 @@ Examples:
     train_parser.add_argument("--log-dir", type=str, help="TensorBoard log directory")
     train_parser.add_argument("--save-dir", type=str, help="Image save directory")
     train_parser.add_argument("--no-tensorboard", action="store_true", help="Disable TensorBoard")
+    train_parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases logging")
+    train_parser.add_argument("--wandb-project", type=str, help="W&B project name")
 
     # Analyze command
     analyze_parser = subparsers.add_parser(
@@ -155,6 +160,10 @@ def resolve_config(args) -> ExperimentConfig:
         config.visualization.save_dir = args.save_dir
     if args.no_tensorboard:
         config.visualization.use_tensorboard = False
+    if hasattr(args, 'wandb') and args.wandb:
+        config.visualization.use_wandb = True
+    if hasattr(args, 'wandb_project') and args.wandb_project is not None:
+        config.visualization.wandb_project = args.wandb_project
 
     config.model.model_type = args.model or config.model.model_type
 
@@ -164,20 +173,25 @@ def resolve_config(args) -> ExperimentConfig:
 def run_train(config: ExperimentConfig) -> None:
     """Execute a training run with the given config."""
     from superposition.training.trainer import Trainer
+    from superposition.utils.reproducibility import setup_distributed, cleanup_distributed, is_main_process
 
-    set_seed(config.training.seed)
-    device = get_device()
+    # Setup distributed training
+    rank, local_rank, world_size = setup_distributed()
 
-    # Ensure output directories exist
-    os.makedirs(config.visualization.save_dir, exist_ok=True)
-    os.makedirs(config.visualization.log_dir, exist_ok=True)
+    set_seed(config.training.seed + rank)  # Different seed per process
+    device = get_device(local_rank=local_rank)
 
-    logger.info(f"Experiment: {config.name}")
-    logger.info(f"Model type: {config.model.model_type}")
-    logger.info(f"Device: {device}")
+    # Ensure output directories exist (only on main process)
+    if is_main_process():
+        os.makedirs(config.visualization.save_dir, exist_ok=True)
+        os.makedirs(config.visualization.log_dir, exist_ok=True)
+
+        logger.info(f"Experiment: {config.name}")
+        logger.info(f"Model type: {config.model.model_type}")
+        logger.info(f"Device: {device}")
 
     model_type = config.model.model_type
-    trainer = Trainer(config)
+    trainer = Trainer(config, rank=rank, world_size=world_size)
 
     if model_type == "toy":
         from superposition.models.toy import ToyModel
@@ -216,6 +230,7 @@ def run_train(config: ExperimentConfig) -> None:
         train_loader, val_loader = create_dataloaders(
             dataset,
             batch_size=config.training.batch_size,
+            distributed=(world_size > 1),
         )
 
         model = TranslationModel(
@@ -228,6 +243,9 @@ def run_train(config: ExperimentConfig) -> None:
     else:
         logger.error(f"Unknown model type: {model_type}")
         sys.exit(1)
+
+    # Cleanup distributed training
+    cleanup_distributed()
 
 
 def run_analyze(args) -> None:
