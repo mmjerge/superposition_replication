@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "superposition-replication"
+version = "0.2.0"
+description = "Replication and extension of Anthropic's Toy Models of Superposition"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=1.12",
+    "numpy",
+    "transformers",
+    "datasets",
+    "evaluate",
+    "sacrebleu",
+    "tensorboard",
+    "matplotlib",
+    "seaborn",
+    "scikit-learn",
+    "tqdm",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+wandb = ["wandb"]
+dev = ["pytest", "pytest-cov", "ruff"]
+
+[project.scripts]
+superposition = "superposition.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["superposition*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
