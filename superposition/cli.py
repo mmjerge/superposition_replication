@@ -24,7 +24,7 @@ Examples:
   python -m superposition train --model transformer --num-features 128 --num-hidden 64
 
   # Run from a config file
-  python -m superposition train --config experiment.yaml
+  python -m superposition train --config config/config.yaml
 
   # Use a preset configuration
   python -m superposition train --preset toy_large
