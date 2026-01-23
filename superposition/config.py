@@ -150,7 +150,7 @@ PRESETS = {
             num_hidden=256,
         ),
         training=TrainingConfig(
-            batch_size=16, num_epochs=10, learning_rate=1e-4, max_samples=10000
+            batch_size=4, num_epochs=10, learning_rate=1e-4, max_samples=10000
         ),
     ),
 }

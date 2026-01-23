@@ -44,6 +44,9 @@ class TranslationModel(nn.Module):
         for param in self.base_model.parameters():
             param.requires_grad = False
 
+        # Enable gradient checkpointing to save memory
+        self.base_model.gradient_checkpointing_enable()
+
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
         total = sum(p.numel() for p in self.parameters())
         logger.info(
