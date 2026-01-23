@@ -159,7 +159,7 @@ class TestToyModel:
     def test_forward_shape(self):
         from superposition.models.toy import ToyModel
 
-        model = ToyModel(num_features=5, num_hidden=2, num_instances=3)
+        model = ToyModel(num_features=5, num_hidden=2, num_instances=3, device=torch.device("cpu"))
         x = torch.randn(8, 3, 5)
         out = model(x)
         assert out.shape == (8, 3, 5)
@@ -167,7 +167,7 @@ class TestToyModel:
     def test_forward_relu(self):
         from superposition.models.toy import ToyModel
 
-        model = ToyModel(num_features=5, num_hidden=2, num_instances=3)
+        model = ToyModel(num_features=5, num_hidden=2, num_instances=3, device=torch.device("cpu"))
         x = torch.randn(8, 3, 5)
         out = model(x)
         assert (out >= 0).all(), "Output should be non-negative (ReLU)"
@@ -191,7 +191,7 @@ class TestToyModel:
     def test_compute_loss(self):
         from superposition.models.toy import ToyModel
 
-        model = ToyModel(num_features=5, num_hidden=2, num_instances=3)
+        model = ToyModel(num_features=5, num_hidden=2, num_instances=3, device=torch.device("cpu"))
         batch = model.generate_data(8)
         output = model(batch)
         loss = model.compute_loss(batch, output)
@@ -224,7 +224,7 @@ class TestToyModel:
         from superposition.models.toy import ToyModel
 
         fp = torch.ones(4, 1) * 0.5
-        model = ToyModel(num_features=3, num_hidden=2, num_instances=4, feature_probability=fp)
+        model = ToyModel(num_features=3, num_hidden=2, num_instances=4, feature_probability=fp, device=torch.device("cpu"))
         assert torch.allclose(model.feature_probability, fp)
 
 
@@ -241,7 +241,7 @@ class TestTransformerModel:
     def test_forward_shape(self):
         from superposition.models.transformer import TransformerModel
 
-        model = TransformerModel(num_features=16, num_hidden=8, num_instances=2, n_layers=2, n_heads=2)
+        model = TransformerModel(num_features=16, num_hidden=8, num_instances=2, n_layers=2, n_heads=2, device=torch.device("cpu"))
         x = torch.randn(4, 2, 16)
         out = model(x)
         assert out.shape == (4, 2, 16)
@@ -249,7 +249,7 @@ class TestTransformerModel:
     def test_forward_relu(self):
         from superposition.models.transformer import TransformerModel
 
-        model = TransformerModel(num_features=16, num_hidden=8, num_instances=2, n_layers=2, n_heads=2)
+        model = TransformerModel(num_features=16, num_hidden=8, num_instances=2, n_layers=2, n_heads=2, device=torch.device("cpu"))
         x = torch.randn(4, 2, 16)
         out = model(x)
         assert (out >= 0).all()
@@ -300,11 +300,14 @@ class TestInterferenceAnalysis:
         from superposition.analysis.interference import compute_cosine_similarity_matrix
 
         # Orthogonal vectors should have 0 off-diagonal similarity
-        W = torch.eye(4, 3)
+        W = torch.eye(3, 3)
         sim = compute_cosine_similarity_matrix(W)
-        assert sim.shape == (4, 4)
+        assert sim.shape == (3, 3)
         # Diagonal should be 1
-        assert torch.allclose(sim.diag(), torch.ones(4), atol=1e-5)
+        assert torch.allclose(sim.diag(), torch.ones(3), atol=1e-5)
+        # Off-diagonal should be 0 (orthogonal vectors)
+        off_diag_mask = ~torch.eye(3, dtype=bool)
+        assert torch.allclose(sim[off_diag_mask], torch.zeros(6), atol=1e-5)
 
     def test_cosine_similarity_parallel(self):
         from superposition.analysis.interference import compute_cosine_similarity_matrix
@@ -612,7 +615,7 @@ class TestTrainer:
             training=TrainingConfig(batch_size=8, num_steps=5, learning_rate=1e-3),
             visualization=VisualizationConfig(viz_interval=10, use_tensorboard=False),
         )
-        model = ToyModel(num_features=4, num_hidden=2, num_instances=2)
+        model = ToyModel(num_features=4, num_hidden=2, num_instances=2, device=torch.device("cpu"))
         trainer = Trainer(config)
         metrics = trainer.train_superposition_model(model)
 
@@ -646,7 +649,7 @@ class TestTrainer:
             training=TrainingConfig(batch_size=64, num_steps=100, learning_rate=1e-2),
             visualization=VisualizationConfig(viz_interval=200, use_tensorboard=False),
         )
-        model = ToyModel(num_features=3, num_hidden=2, num_instances=2)
+        model = ToyModel(num_features=3, num_hidden=2, num_instances=2, device=torch.device("cpu"))
         trainer = Trainer(config)
         metrics = trainer.train_superposition_model(model)
 

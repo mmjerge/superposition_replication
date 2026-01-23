@@ -61,9 +61,9 @@ class ToyModel(SuperpositionModel):
             Reconstruction of shape (batch, num_instances, num_features).
         """
         # Encode: (batch, instances, features) @ (instances, features, hidden)
-        hidden = torch.einsum("bin,inf->bih", features, self.W)
-        # Decode: (batch, instances, hidden) @ (instances, hidden, features)
-        out = torch.einsum("bih,inf->bin", hidden, self.W)
+        hidden = torch.einsum("bif,ifh->bih", features, self.W)
+        # Decode: (batch, instances, hidden) @ (instances, features, hidden) -> contract over h
+        out = torch.einsum("bih,ifh->bif", hidden, self.W)
         out = out + self.b_final.unsqueeze(0)
         return F.relu(out)
 
