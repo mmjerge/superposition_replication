@@ -18,13 +18,20 @@ superposition_replication/
 │   │   └── translation.py           # MarianMT bottleneck model
 │   ├── training/
 │   │   └── trainer.py               # Unified training loop
+│   ├── analysis/
+│   │   ├── max_activations.py       # Polysemantic neuron detection
+│   │   ├── interference.py          # Cosine similarity heatmaps
+│   │   └── embeddings.py            # POS-tagged embedding visualization
 │   └── utils/
 │       ├── data.py                   # Dataset classes and loaders
 │       ├── logging.py               # Structured logging
 │       ├── reproducibility.py       # Seeding and device management
 │       └── visualization.py         # Plotting and TensorBoard utilities
+├── tests/
+│   └── tests.py                     # pytest test suite
 ├── config.yaml                       # Default experiment configuration
 ├── pyproject.toml                    # Package metadata and dependencies
+├── uv.lock                           # Dependency lockfile (uv)
 ├── environment.yaml                  # Conda environment specification
 ├── images/                           # Generated visualizations
 ├── runs/                             # TensorBoard logs
@@ -33,13 +40,22 @@ superposition_replication/
 
 ## Installation
 
-```bash
-# From source (recommended for development)
-pip install -e .
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
-# Or with conda environment
-conda env create -f environment.yaml
-conda activate superposition
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install the project and all dependencies
+uv sync
+
+# Install with optional wandb support
+uv sync --extra wandb
+```
+
+### Alternative: pip install
+
+```bash
 pip install -e .
 ```
 
@@ -49,22 +65,37 @@ pip install -e .
 
 ```bash
 # Run toy model with defaults
-python -m superposition train --model toy
+uv run python -m superposition train --model toy
 
 # Run transformer model with custom parameters
-python -m superposition train --model transformer --num-features 128 --num-hidden 64 --num-steps 5000
+uv run python -m superposition train --model transformer --num-features 128 --num-hidden 64 --num-steps 5000
 
 # Run from a config file
-python -m superposition train --config config.yaml
+uv run python -m superposition train --config config.yaml
 
 # Use a preset configuration
-python -m superposition train --preset toy_large
+uv run python -m superposition train --preset toy_large
 
 # Translation model with bottleneck
-python -m superposition train --model translation --num-hidden 256 --max-samples 10000
+uv run python -m superposition train --model translation --num-hidden 256 --max-samples 10000
 
 # List available presets
-python -m superposition presets
+uv run python -m superposition presets
+```
+
+### Analysis Tools
+
+Three analysis tools address key questions about superposition:
+
+```bash
+# 1. Cosine similarity heatmap: which features interfere?
+uv run python -m superposition analyze --analysis interference --model toy
+
+# 2. Max-activating examples: which tokens share a neuron? (polysemanticity)
+uv run python -m superposition analyze --analysis activations --model translation --checkpoint model.pt
+
+# 3. POS-tagged embeddings: is linguistic structure preserved through the bottleneck?
+uv run python -m superposition analyze --analysis embeddings --model translation --checkpoint model.pt --method tsne
 ```
 
 ### Programmatic Usage
@@ -81,16 +112,14 @@ set_seed(42)
 # Use a preset or build custom config
 config = PRESETS["toy_small"]
 
-# Or build from scratch
-config = ExperimentConfig()
-config.model.num_features = 10
-config.model.num_hidden = 3
-config.training.num_steps = 5000
-
 # Create model and train
 model = ToyModel(num_features=10, num_hidden=3, num_instances=10)
 trainer = Trainer(config)
 metrics = trainer.train_superposition_model(model)
+
+# Run interference analysis
+from superposition.analysis import compute_interference_heatmap
+compute_interference_heatmap(model, model_type="toy", save_path="images/interference.png")
 ```
 
 ### Configuration
@@ -124,12 +153,31 @@ visualization:
 | **Transformer** | GPT2-based model studying superposition with attention | `num_features`, `num_hidden`, `n_layers`, `n_heads` |
 | **Translation** | MarianMT with learned bottleneck | `base_model_name`, `hidden_size` |
 
+## Analysis
+
+| Analysis | Purpose | Output |
+|----------|---------|--------|
+| **Interference Heatmap** | Shows cosine similarity between learned feature directions | Heatmap PNG showing orthogonal vs. superposed features |
+| **Max-Activating Examples** | Identifies tokens that maximally activate each bottleneck neuron | Table of polysemantic neurons and their top tokens |
+| **POS-Tagged Embeddings** | Colors embeddings by Part-of-Speech to verify linguistic structure | Scatter plot with NOUN/VERB/ADJ clusters |
+
+## Testing
+
+```bash
+# Run tests
+uv run pytest tests/tests.py -v
+
+# Run with coverage
+uv run pytest tests/tests.py --cov=superposition --cov-report=term-missing
+```
+
 ## Key Concepts
 
 - **Superposition**: Networks encoding more features than dimensions by using overlapping representations
 - **Feature Probability**: Sparsity level of each feature (sparser features are more likely to superpose)
 - **Importance**: Relative weight of features in the loss function
 - **Polysemanticity**: Individual neurons responding to multiple unrelated features
+- **Interference**: The degree to which feature directions overlap (measured by cosine similarity)
 
 ## License
 
