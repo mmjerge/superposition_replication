@@ -1,0 +1,34 @@
+# Superposition Experiment Configuration
+# This file can be passed to the CLI: python -m superposition train --config config.yaml
+
+name: superposition_experiment
+
+model:
+  model_type: toy          # Options: toy, transformer, translation
+  num_features: 5
+  num_hidden: 2
+  num_instances: 10
+  # Transformer-specific:
+  n_layers: 4
+  n_heads: 4
+  n_positions: 32
+  # Translation-specific:
+  base_model_name: Helsinki-NLP/opus-mt-en-fr
+
+training:
+  batch_size: 1024
+  num_steps: 10000
+  learning_rate: 0.001
+  scheduler_type: constant   # Options: constant, linear, cosine
+  seed: 42
+  # Translation-specific:
+  num_epochs: 10
+  max_samples: null
+
+visualization:
+  viz_interval: 100
+  log_dir: runs
+  save_dir: images
+  use_tensorboard: true
+  use_wandb: false
+  wandb_project: null
