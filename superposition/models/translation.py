@@ -44,9 +44,6 @@ class TranslationModel(nn.Module):
         for param in self.base_model.parameters():
             param.requires_grad = False
 
-        # Enable gradient checkpointing to save memory
-        self.base_model.gradient_checkpointing_enable()
-
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
         total = sum(p.numel() for p in self.parameters())
         logger.info(
@@ -72,12 +69,15 @@ class TranslationModel(nn.Module):
         Returns:
             Model outputs with loss if labels provided.
         """
-        encoder_outputs = self.base_model.get_encoder()(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-        )
+        # Run frozen encoder without gradient tracking to save memory.
+        # All encoder params are frozen, so no gradients flow through it.
+        with torch.no_grad():
+            encoder_outputs = self.base_model.get_encoder()(
+                input_ids=input_ids,
+                attention_mask=attention_mask,
+            )
 
-        # Compress through bottleneck
+        # Compress through bottleneck (trainable — gradients flow via weights)
         hidden_states = self.encoder_bottleneck(encoder_outputs[0])
         expanded_states = self.decoder_expansion(hidden_states)
 

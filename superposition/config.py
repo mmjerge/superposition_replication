@@ -37,6 +37,7 @@ class TrainingConfig:
     # Translation-specific
     num_epochs: int = 10
     max_samples: Optional[int] = None
+    gradient_accumulation_steps: int = 1
 
 
 @dataclass
