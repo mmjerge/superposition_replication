@@ -66,6 +66,7 @@ Examples:
     train_parser.add_argument("--scheduler", type=str, choices=["constant", "linear", "cosine"], help="LR scheduler")
     train_parser.add_argument("--seed", type=int, default=42, help="Random seed")
     train_parser.add_argument("--max-samples", type=int, help="Max training samples (translation)")
+    train_parser.add_argument("--gradient-accumulation-steps", type=int, help="Gradient accumulation steps")
 
     # Visualization parameters
     train_parser.add_argument("--viz-interval", type=int, help="Visualization interval (steps)")
@@ -152,6 +153,8 @@ def resolve_config(args) -> ExperimentConfig:
         config.training.seed = args.seed
     if args.max_samples is not None:
         config.training.max_samples = args.max_samples
+    if hasattr(args, 'gradient_accumulation_steps') and args.gradient_accumulation_steps is not None:
+        config.training.gradient_accumulation_steps = args.gradient_accumulation_steps
     if args.viz_interval is not None:
         config.visualization.viz_interval = args.viz_interval
     if args.log_dir is not None:
@@ -191,6 +194,25 @@ def run_train(config: ExperimentConfig) -> None:
         logger.info(f"Device: {device}")
 
     model_type = config.model.model_type
+
+    # Auto-scale batch size for translation models to avoid OOM.
+    # Translation models (seq2seq with long sequences) need much smaller
+    # per-GPU batch sizes than toy/transformer models.
+    if model_type == "translation":
+        max_translation_batch = 16
+        if config.training.batch_size > max_translation_batch:
+            original_bs = config.training.batch_size
+            accum_steps = max(1, original_bs // max_translation_batch)
+            config.training.batch_size = max_translation_batch
+            config.training.gradient_accumulation_steps = accum_steps
+            if is_main_process():
+                logger.warning(
+                    f"Batch size {original_bs} is too large for translation model. "
+                    f"Auto-scaled to batch_size={max_translation_batch} with "
+                    f"gradient_accumulation_steps={accum_steps} "
+                    f"(effective batch_size={max_translation_batch * accum_steps})"
+                )
+
     trainer = Trainer(config, rank=rank, world_size=world_size)
 
     if model_type == "toy":

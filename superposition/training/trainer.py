@@ -157,11 +157,17 @@ class Trainer:
         actual_model = model.module if isinstance(model, DDP) else model
         optimizer = torch.optim.AdamW(actual_model.get_trainable_parameters(), lr=cfg.learning_rate)
         device = actual_model._device
+        grad_accum_steps = cfg.gradient_accumulation_steps
 
         metrics = {"epoch_losses": [], "bleu_scores": []}
 
         if is_main_process():
             logger.info(f"Starting translation training: {cfg.num_epochs} epochs, lr={cfg.learning_rate}")
+            if grad_accum_steps > 1:
+                logger.info(
+                    f"Gradient accumulation: {grad_accum_steps} steps "
+                    f"(effective batch_size={cfg.batch_size * grad_accum_steps})"
+                )
             if self.is_distributed:
                 logger.info(f"Distributed training on {self.world_size} GPUs")
 
@@ -179,15 +185,18 @@ class Trainer:
                 disable=not is_main_process()
             )
 
+            optimizer.zero_grad()
             for i, batch in enumerate(pbar):
-                optimizer.zero_grad()
                 batch = {k: v.to(device) for k, v in batch.items()}
                 outputs = model(**batch)
-                loss = outputs.loss
+                loss = outputs.loss / grad_accum_steps
                 loss.backward()
-                optimizer.step()
 
-                loss_val = loss.item()
+                if (i + 1) % grad_accum_steps == 0:
+                    optimizer.step()
+                    optimizer.zero_grad()
+
+                loss_val = loss.item() * grad_accum_steps  # unscaled loss for logging
                 running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
 
                 if is_main_process():
@@ -198,6 +207,11 @@ class Trainer:
                         self.visualizer.log_scalar("Loss/train", loss_val, global_step)
                         weights = actual_model.get_bottleneck_weights().cpu().numpy()
                         self.visualizer.log_histogram("bottleneck/weights", weights, global_step)
+
+            # Flush remaining accumulated gradients at end of epoch
+            if (i + 1) % grad_accum_steps != 0:
+                optimizer.step()
+                optimizer.zero_grad()
 
             metrics["epoch_losses"].append(running_loss)
 

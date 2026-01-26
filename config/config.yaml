@@ -24,6 +24,7 @@ training:
   # Translation-specific:
   num_epochs: 10
   max_samples: null
+  gradient_accumulation_steps: 1
 
 visualization:
   viz_interval: 100
