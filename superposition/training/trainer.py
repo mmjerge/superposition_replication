@@ -215,6 +215,12 @@ class Trainer:
 
             metrics["epoch_losses"].append(running_loss)
 
+            # All ranks must synchronize before validation to prevent
+            # non-main ranks from starting the next epoch's DDP training
+            # while rank 0 is still evaluating (which causes NCCL timeout).
+            if self.is_distributed:
+                dist.barrier()
+
             if is_main_process():
                 logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
 
@@ -224,6 +230,11 @@ class Trainer:
                     metrics["bleu_scores"].append(bleu_score)
                     if self.config.visualization.use_tensorboard:
                         self.visualizer.log_scalar("BLEU/validation", bleu_score, epoch)
+
+            # Wait for rank 0 to finish validation before all ranks
+            # proceed to the next epoch together.
+            if self.is_distributed:
+                dist.barrier()
 
         if is_main_process():
             self.visualizer.close()
