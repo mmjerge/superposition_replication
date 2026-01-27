@@ -11,7 +11,7 @@ import yaml
 @dataclass
 class ModelConfig:
     """Configuration for model architecture."""
-    model_type: str = "toy"  # "toy", "transformer", "translation"
+    model_type: str = "toy"  # "toy", "transformer", "translation", "computation", "continuous_thought"
     num_features: int = 5
     num_hidden: int = 2
     num_instances: int = 10
@@ -23,6 +23,15 @@ class ModelConfig:
 
     # Translation-specific
     base_model_name: str = "Helsinki-NLP/opus-mt-en-fr"
+
+    # Computation-in-superposition specific
+    target_fn: str = "abs"  # "abs", "square", "threshold", "relu"
+    mlp_hidden: int = 16
+
+    # Continuous thought specific
+    num_thought_steps: int = 4
+    thought_mlp_expansion: int = 2
+    use_confidence_head: bool = True
 
 
 @dataclass
@@ -150,6 +159,36 @@ PRESETS = {
             model_type="translation",
             base_model_name="Helsinki-NLP/opus-mt-en-fr",
             num_hidden=256,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=10, learning_rate=1e-4, max_samples=10000
+        ),
+    ),
+    "computation_abs": ExperimentConfig(
+        name="computation_abs",
+        model=ModelConfig(
+            model_type="computation", num_features=10, num_hidden=3,
+            num_instances=10, target_fn="abs", mlp_hidden=32,
+        ),
+        training=TrainingConfig(batch_size=1024, num_steps=15000, learning_rate=1e-3),
+    ),
+    "computation_square": ExperimentConfig(
+        name="computation_square",
+        model=ModelConfig(
+            model_type="computation", num_features=10, num_hidden=3,
+            num_instances=10, target_fn="square", mlp_hidden=32,
+        ),
+        training=TrainingConfig(batch_size=1024, num_steps=15000, learning_rate=1e-3),
+    ),
+    "continuous_thought": ExperimentConfig(
+        name="continuous_thought",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            base_model_name="Helsinki-NLP/opus-mt-en-fr",
+            num_hidden=256,
+            num_thought_steps=4,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
         ),
         training=TrainingConfig(
             batch_size=4, num_epochs=10, learning_rate=1e-4, max_samples=10000
