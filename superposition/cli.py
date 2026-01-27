@@ -32,10 +32,10 @@ Examples:
   # Use a preset configuration
   python -m superposition train --preset toy_large
 
-  # Analyze a trained model
-  python -m superposition analyze --analysis interference --model toy --checkpoint model.pt
-  python -m superposition analyze --analysis activations --model translation --checkpoint model.pt
-  python -m superposition analyze --analysis embeddings --model translation --checkpoint model.pt
+  # Analyze a trained model (checkpoints are saved to checkpoints/ after training)
+  python -m superposition analyze --analysis interference --model toy --checkpoint checkpoints/toy_small.pt
+  python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
+  python -m superposition analyze --analysis embeddings --model translation --checkpoint checkpoints/translation.pt
 
   # List available presets
   python -m superposition presets
@@ -188,6 +188,7 @@ def run_train(config: ExperimentConfig) -> None:
     if is_main_process():
         os.makedirs(config.visualization.save_dir, exist_ok=True)
         os.makedirs(config.visualization.log_dir, exist_ok=True)
+        os.makedirs(config.visualization.checkpoint_dir, exist_ok=True)
 
         logger.info(f"Experiment: {config.name}")
         logger.info(f"Model type: {config.model.model_type}")
@@ -270,6 +271,43 @@ def run_train(config: ExperimentConfig) -> None:
     cleanup_distributed()
 
 
+def _resolve_checkpoint_path(checkpoint: str, config: ExperimentConfig) -> str:
+    """Resolve a checkpoint path, checking the default checkpoint directory as fallback.
+
+    Args:
+        checkpoint: User-provided checkpoint path.
+        config: Experiment config with checkpoint_dir setting.
+
+    Returns:
+        Resolved checkpoint path.
+    """
+    if os.path.isfile(checkpoint):
+        return checkpoint
+
+    # Check in the default checkpoint directory
+    candidate = os.path.join(config.visualization.checkpoint_dir, checkpoint)
+    if os.path.isfile(candidate):
+        logger.info(f"Resolved checkpoint to: {candidate}")
+        return candidate
+
+    # Check for a checkpoint named after the config
+    config_checkpoint = os.path.join(
+        config.visualization.checkpoint_dir, f"{config.name}.pt"
+    )
+    if os.path.isfile(config_checkpoint):
+        logger.info(f"Resolved checkpoint to: {config_checkpoint}")
+        return config_checkpoint
+
+    logger.warning(
+        f"Checkpoint '{checkpoint}' not found. Looked in:\n"
+        f"  - {os.path.abspath(checkpoint)}\n"
+        f"  - {os.path.abspath(candidate)}\n"
+        f"  - {os.path.abspath(config_checkpoint)}\n"
+        f"Train a model first with: python -m superposition train --model {config.model.model_type}"
+    )
+    return checkpoint
+
+
 def run_analyze(args) -> None:
     """Run analysis on a trained model."""
     import torch
@@ -295,8 +333,9 @@ def run_analyze(args) -> None:
             device=device,
         )
         if args.checkpoint:
-            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
-            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
 
     elif model_type == "transformer":
         from superposition.models.transformer import TransformerModel
@@ -311,8 +350,9 @@ def run_analyze(args) -> None:
             device=device,
         )
         if args.checkpoint:
-            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
-            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
 
     elif model_type == "translation":
         from superposition.models.translation import TranslationModel
@@ -324,8 +364,9 @@ def run_analyze(args) -> None:
             device=device,
         )
         if args.checkpoint:
-            model.load_state_dict(torch.load(args.checkpoint, map_location=device))
-            logger.info(f"Loaded checkpoint: {args.checkpoint}")
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
     else:
         logger.error(f"Unknown model type: {model_type}")
         sys.exit(1)

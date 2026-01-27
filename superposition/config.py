@@ -46,6 +46,7 @@ class VisualizationConfig:
     viz_interval: int = 100
     log_dir: str = "runs"
     save_dir: str = "images"
+    checkpoint_dir: str = "checkpoints"
     use_tensorboard: bool = True
     use_wandb: bool = False
     wandb_project: Optional[str] = None

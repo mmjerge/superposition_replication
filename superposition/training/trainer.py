@@ -1,5 +1,6 @@
 """Unified training loop for all superposition models."""
 
+import os
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -134,6 +135,9 @@ class Trainer:
 
         if is_main_process():
             logger.info(f"Training complete. Final avg loss: {running_loss:.6f}")
+            checkpoint_dir = self.config.visualization.checkpoint_dir
+            checkpoint_path = os.path.join(checkpoint_dir, f"{self.config.name}.pt")
+            self._save_checkpoint(model, checkpoint_path)
             self.visualizer.close()
 
         return metrics
@@ -237,9 +241,24 @@ class Trainer:
                 dist.barrier()
 
         if is_main_process():
+            checkpoint_dir = self.config.visualization.checkpoint_dir
+            checkpoint_path = os.path.join(checkpoint_dir, f"{self.config.name}.pt")
+            self._save_checkpoint(model, checkpoint_path)
             self.visualizer.close()
 
         return metrics
+
+    def _save_checkpoint(self, model, checkpoint_path: str) -> None:
+        """Save model checkpoint to disk.
+
+        Args:
+            model: The model to save (will unwrap DDP if needed).
+            checkpoint_path: Path to save the checkpoint file.
+        """
+        actual_model = model.module if isinstance(model, DDP) else model
+        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+        torch.save(actual_model.state_dict(), checkpoint_path)
+        logger.info(f"Saved checkpoint: {checkpoint_path}")
 
     def _visualize_model(self, model, step: int) -> None:
         """Generate visualizations based on model type."""
