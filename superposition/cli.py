@@ -122,6 +122,13 @@ Examples:
     return parser
 
 
+_DEFAULT_PRESETS = {
+    "toy": "toy_small",
+    "transformer": "transformer_small",
+    "translation": "translation",
+}
+
+
 def resolve_config(args) -> ExperimentConfig:
     """Build an ExperimentConfig from CLI arguments, applying overrides."""
     if args.preset:
@@ -129,8 +136,15 @@ def resolve_config(args) -> ExperimentConfig:
     elif args.config:
         config = ExperimentConfig.from_yaml(args.config)
     else:
-        config = ExperimentConfig()
-        config.model.model_type = args.model
+        # Use the default preset for the model type so that the config name
+        # and model architecture (e.g. hidden_size) are consistent with what
+        # the analyze command expects.
+        preset_key = _DEFAULT_PRESETS.get(args.model)
+        if preset_key and preset_key in PRESETS:
+            config = PRESETS[preset_key]
+        else:
+            config = ExperimentConfig()
+            config.model.model_type = args.model
 
     # Apply CLI overrides
     if args.num_features is not None:
@@ -298,13 +312,19 @@ def _resolve_checkpoint_path(checkpoint: str, config: ExperimentConfig) -> str:
         logger.info(f"Resolved checkpoint to: {config_checkpoint}")
         return config_checkpoint
 
-    logger.warning(
+    msg = (
         f"Checkpoint '{checkpoint}' not found. Looked in:\n"
         f"  - {os.path.abspath(checkpoint)}\n"
         f"  - {os.path.abspath(candidate)}\n"
-        f"  - {os.path.abspath(config_checkpoint)}\n"
-        f"Train a model first with: python -m superposition train --model {config.model.model_type}"
+        f"  - {os.path.abspath(config_checkpoint)}"
     )
+    checkpoint_dir = config.visualization.checkpoint_dir
+    if os.path.isdir(checkpoint_dir):
+        available = [f for f in os.listdir(checkpoint_dir) if f.endswith(".pt")]
+        if available:
+            msg += f"\nAvailable checkpoints in {checkpoint_dir}/: {', '.join(sorted(available))}"
+    msg += f"\nTrain a model first with: python -m superposition train --model {config.model.model_type}"
+    logger.warning(msg)
     return checkpoint
 
 
