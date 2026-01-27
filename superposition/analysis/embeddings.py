@@ -108,11 +108,15 @@ def get_pos_tags(tokens: List[str]) -> List[str]:
     import nltk
 
     # Ensure required NLTK data is available
-    for resource in ["averaged_perceptron_tagger", "universal_tagset"]:
+    _nltk_resources = [
+        ("taggers/averaged_perceptron_tagger_eng", "averaged_perceptron_tagger_eng"),
+        ("taggers/universal_tagset", "universal_tagset"),
+    ]
+    for path, name in _nltk_resources:
         try:
-            nltk.data.find(f"taggers/{resource}")
+            nltk.data.find(path)
         except LookupError:
-            nltk.download(resource, quiet=True)
+            nltk.download(name, quiet=True)
 
     # Clean subword markers for better POS tagging
     cleaned_tokens = []
