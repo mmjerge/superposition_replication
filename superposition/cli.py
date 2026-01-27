@@ -34,6 +34,7 @@ Examples:
 
   # Analyze a trained model (checkpoints are saved to checkpoints/ after training)
   python -m superposition analyze --analysis interference --model toy --checkpoint checkpoints/toy_small.pt
+  python -m superposition analyze --analysis interference --model translation --checkpoint checkpoints/translation.pt
   python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
   python -m superposition analyze --analysis embeddings --model translation --checkpoint checkpoints/translation.pt
 

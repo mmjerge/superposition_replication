@@ -105,7 +105,8 @@ Model checkpoints are saved automatically to `checkpoints/` after training (e.g.
 
 ```bash
 # 1. Cosine similarity heatmap: which features interfere?
-uv run python -m superposition analyze --analysis interference --model toy
+uv run python -m superposition analyze --analysis interference --model toy --checkpoint checkpoints/toy_small.pt
+uv run python -m superposition analyze --analysis interference --model translation --checkpoint checkpoints/translation.pt
 
 # 2. Max-activating examples: which tokens share a neuron? (polysemanticity)
 uv run python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
