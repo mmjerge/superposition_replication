@@ -42,6 +42,7 @@ superposition_replication/
 │   ├── toy_models_reproduction.py
 │   ├── transformer_superposition.py
 │   └── translation_superposition.py
+├── checkpoints/                      # Model checkpoints (saved after training)
 ├── images/                           # Generated visualizations
 ├── runs/                             # TensorBoard logs
 ├── pyproject.toml                    # Package metadata and dependencies
@@ -100,17 +101,17 @@ uv run python -m superposition presets
 
 ### Analysis Tools
 
-Three analysis tools address key questions about superposition:
+Model checkpoints are saved automatically to `checkpoints/` after training (e.g. `checkpoints/translation.pt`). Three analysis tools address key questions about superposition:
 
 ```bash
 # 1. Cosine similarity heatmap: which features interfere?
 uv run python -m superposition analyze --analysis interference --model toy
 
 # 2. Max-activating examples: which tokens share a neuron? (polysemanticity)
-uv run python -m superposition analyze --analysis activations --model translation --checkpoint model.pt
+uv run python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
 
 # 3. POS-tagged embeddings: is linguistic structure preserved through the bottleneck?
-uv run python -m superposition analyze --analysis embeddings --model translation --checkpoint model.pt --method tsne
+uv run python -m superposition analyze --analysis embeddings --model translation --checkpoint checkpoints/translation.pt --method tsne
 ```
 
 ### Programmatic Usage
@@ -158,6 +159,7 @@ visualization:
   viz_interval: 100
   log_dir: runs
   save_dir: images
+  checkpoint_dir: checkpoints
   use_tensorboard: true
   use_wandb: false
   wandb_project: null
