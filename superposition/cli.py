@@ -34,8 +34,20 @@ Examples:
 
   # Analyze a trained model (checkpoints are saved to checkpoints/ after training)
   python -m superposition analyze --analysis interference --model toy --checkpoint checkpoints/toy_small.pt
+  python -m superposition analyze --analysis interference --model translation --checkpoint checkpoints/translation.pt
   python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
   python -m superposition analyze --analysis embeddings --model translation --checkpoint checkpoints/translation.pt
+
+  # Phase diagram and geometric analysis (toy models)
+  python -m superposition analyze --analysis phase_diagram --model toy
+  python -m superposition analyze --analysis geometry --model toy --checkpoint checkpoints/toy_small.pt
+
+  # Computation-in-superposition
+  python -m superposition train --model computation --preset computation_abs
+  python -m superposition analyze --analysis interference --model computation --checkpoint checkpoints/computation_abs.pt
+
+  # Continuous thought model
+  python -m superposition train --model continuous_thought
 
   # List available presets
   python -m superposition presets
@@ -47,7 +59,8 @@ Examples:
     # Train command
     train_parser = subparsers.add_parser("train", help="Train a superposition model")
     train_parser.add_argument(
-        "--model", type=str, choices=["toy", "transformer", "translation"],
+        "--model", type=str,
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
         default="toy", help="Model type to train",
     )
     train_parser.add_argument("--config", type=str, help="Path to YAML config file")
@@ -82,12 +95,12 @@ Examples:
     )
     analyze_parser.add_argument(
         "--analysis", type=str, required=True,
-        choices=["activations", "interference", "embeddings"],
+        choices=["activations", "interference", "embeddings", "phase_diagram", "geometry"],
         help="Type of analysis to run",
     )
     analyze_parser.add_argument(
         "--model", type=str, required=True,
-        choices=["toy", "transformer", "translation"],
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
         help="Model type",
     )
     analyze_parser.add_argument(
@@ -116,6 +129,27 @@ Examples:
     )
     analyze_parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
+    # Phase diagram parameters
+    analyze_parser.add_argument(
+        "--sparsity-steps", type=int, default=20,
+        help="Grid resolution for sparsity axis (phase_diagram analysis)",
+    )
+    analyze_parser.add_argument(
+        "--importance-steps", type=int, default=20,
+        help="Grid resolution for importance axis (phase_diagram analysis)",
+    )
+    analyze_parser.add_argument(
+        "--sweep-training-steps", type=int, default=10000,
+        help="Training steps per model in sweep (phase_diagram analysis)",
+    )
+
+    # Computation model parameters
+    analyze_parser.add_argument(
+        "--target-fn", type=str, default="abs",
+        choices=["abs", "square", "threshold", "relu"],
+        help="Target function for computation model analysis",
+    )
+
     # Presets command
     subparsers.add_parser("presets", help="List available preset configurations")
 
@@ -126,6 +160,8 @@ _DEFAULT_PRESETS = {
     "toy": "toy_small",
     "transformer": "transformer_small",
     "translation": "translation",
+    "computation": "computation_abs",
+    "continuous_thought": "continuous_thought",
 }
 
 
@@ -277,6 +313,45 @@ def run_train(config: ExperimentConfig) -> None:
         )
         trainer.train_translation_model(model, train_loader, val_loader)
 
+    elif model_type == "computation":
+        from superposition.models.computation import ComputationModel
+
+        model = ComputationModel(
+            num_features=config.model.num_features,
+            num_hidden=config.model.num_hidden,
+            num_instances=config.model.num_instances,
+            target_fn=config.model.target_fn,
+            mlp_hidden=config.model.mlp_hidden,
+            device=device,
+        )
+        trainer.train_superposition_model(model)
+
+    elif model_type == "continuous_thought":
+        from superposition.models.continuous_thought import ContinuousThoughtModel
+        from superposition.utils.data import TranslationDataset, create_dataloaders
+        from transformers import MarianTokenizer
+
+        tokenizer = MarianTokenizer.from_pretrained(config.model.base_model_name)
+        dataset = TranslationDataset(
+            tokenizer=tokenizer,
+            max_samples=config.training.max_samples,
+        )
+        train_loader, val_loader = create_dataloaders(
+            dataset,
+            batch_size=config.training.batch_size,
+            distributed=(world_size > 1),
+        )
+
+        model = ContinuousThoughtModel(
+            base_model_name=config.model.base_model_name,
+            hidden_size=config.model.num_hidden,
+            num_thought_steps=config.model.num_thought_steps,
+            thought_mlp_expansion=config.model.thought_mlp_expansion,
+            use_confidence_head=config.model.use_confidence_head,
+            device=device,
+        )
+        trainer.train_translation_model(model, train_loader, val_loader)
+
     else:
         logger.error(f"Unknown model type: {model_type}")
         sys.exit(1)
@@ -387,6 +462,40 @@ def run_analyze(args) -> None:
             checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
             model.load_state_dict(torch.load(checkpoint_path, map_location=device))
             logger.info(f"Loaded checkpoint: {checkpoint_path}")
+
+    elif model_type == "computation":
+        from superposition.models.computation import ComputationModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["computation_abs"]
+        model = ComputationModel(
+            num_features=config.model.num_features,
+            num_hidden=config.model.num_hidden,
+            num_instances=config.model.num_instances,
+            target_fn=config.model.target_fn,
+            mlp_hidden=config.model.mlp_hidden,
+            device=device,
+        )
+        if args.checkpoint:
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
+
+    elif model_type == "continuous_thought":
+        from superposition.models.continuous_thought import ContinuousThoughtModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["continuous_thought"]
+        model = ContinuousThoughtModel(
+            base_model_name=config.model.base_model_name,
+            hidden_size=config.model.num_hidden,
+            num_thought_steps=config.model.num_thought_steps,
+            thought_mlp_expansion=config.model.thought_mlp_expansion,
+            use_confidence_head=config.model.use_confidence_head,
+            device=device,
+        )
+        if args.checkpoint:
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
     else:
         logger.error(f"Unknown model type: {model_type}")
         sys.exit(1)
@@ -478,6 +587,74 @@ def run_analyze(args) -> None:
             sample_size=min(2000, len(tokens)),
             method=args.method,
         )
+
+    elif analysis_type == "phase_diagram":
+        if model_type not in ("toy", "computation"):
+            logger.error("Phase diagram analysis requires a toy or computation model")
+            sys.exit(1)
+
+        from superposition.analysis.phase_diagram import (
+            run_phase_diagram_sweep,
+            plot_phase_diagram,
+            plot_feature_dimensionality_curves,
+        )
+
+        results = run_phase_diagram_sweep(
+            num_features=config.model.num_features,
+            num_hidden=config.model.num_hidden,
+            sparsity_steps=args.sparsity_steps,
+            importance_steps=args.importance_steps,
+            training_steps=args.sweep_training_steps,
+            device=device,
+        )
+
+        plot_phase_diagram(
+            results,
+            save_path=f"{args.save_dir}/phase_diagram.png",
+        )
+        plot_feature_dimensionality_curves(
+            results,
+            save_path=f"{args.save_dir}/feature_dim_curves.png",
+        )
+
+        # Save raw results
+        import numpy as np
+        np.savez(
+            f"{args.save_dir}/phase_diagram_data.npz",
+            feature_probs=results["feature_probs"],
+            importance_ratios=results["importance_ratios"],
+            dimensionality=results["dimensionality"],
+            dimensionality_per_feature=results["dimensionality_per_feature"],
+        )
+        logger.info(f"Phase diagram data saved to {args.save_dir}/phase_diagram_data.npz")
+
+    elif analysis_type == "geometry":
+        if model_type not in ("toy", "computation"):
+            logger.error("Geometric analysis requires a toy or computation model")
+            sys.exit(1)
+
+        from superposition.analysis.geometry import plot_geometric_analysis
+
+        if model_type == "computation":
+            W = model.get_encoder_weights().cpu()
+        else:
+            W = model.get_weight_matrix().cpu()
+
+        fp = model.feature_probability if hasattr(model, "feature_probability") else None
+
+        results = plot_geometric_analysis(
+            W,
+            save_path=f"{args.save_dir}/geometric_analysis.png",
+            feature_probability=fp,
+        )
+
+        # Print summary
+        from collections import Counter
+        structure_counts = Counter(r["dominant_structure"] for r in results)
+        print("\nGeometric Structure Summary:")
+        print("=" * 40)
+        for struct, count in structure_counts.most_common():
+            print(f"  {struct:20s}: {count}/{len(results)} instances")
 
 
 def main():

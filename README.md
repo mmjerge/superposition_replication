@@ -15,13 +15,17 @@ superposition_replication/
 │   │   ├── base.py                   # Base class with shared functionality
 │   │   ├── toy.py                    # W^T W autoencoder model
 │   │   ├── transformer.py           # GPT2-based transformer model
-│   │   └── translation.py           # MarianMT bottleneck model
+│   │   ├── translation.py           # MarianMT bottleneck model
+│   │   ├── computation.py           # Computation-in-superposition model
+│   │   └── continuous_thought.py    # Continuous thought bottleneck model
 │   ├── training/
 │   │   └── trainer.py               # Unified training loop
 │   ├── analysis/
 │   │   ├── max_activations.py       # Polysemantic neuron detection
 │   │   ├── interference.py          # Cosine similarity heatmaps
-│   │   └── embeddings.py            # POS-tagged embedding visualization
+│   │   ├── embeddings.py            # POS-tagged embedding visualization
+│   │   ├── phase_diagram.py         # Phase transition sweep and plotting
+│   │   └── geometry.py              # Polytope structure detection
 │   └── utils/
 │       ├── data.py                   # Dataset classes and loaders
 │       ├── logging.py               # Structured logging
@@ -105,13 +109,34 @@ Model checkpoints are saved automatically to `checkpoints/` after training (e.g.
 
 ```bash
 # 1. Cosine similarity heatmap: which features interfere?
-uv run python -m superposition analyze --analysis interference --model toy
+uv run python -m superposition analyze --analysis interference --model toy --checkpoint checkpoints/toy_small.pt
+uv run python -m superposition analyze --analysis interference --model translation --checkpoint checkpoints/translation.pt
 
 # 2. Max-activating examples: which tokens share a neuron? (polysemanticity)
 uv run python -m superposition analyze --analysis activations --model translation --checkpoint checkpoints/translation.pt
 
 # 3. POS-tagged embeddings: is linguistic structure preserved through the bottleneck?
 uv run python -m superposition analyze --analysis embeddings --model translation --checkpoint checkpoints/translation.pt --method tsne
+
+# 4. Phase diagram: map superposition transitions across sparsity and importance
+uv run python -m superposition analyze --analysis phase_diagram --model toy --sparsity-steps 20 --importance-steps 20
+
+# 5. Geometric structure: detect polytope arrangements in learned weights
+uv run python -m superposition analyze --analysis geometry --model toy --checkpoint checkpoints/toy_small.pt
+```
+
+### Extended Experiments
+
+These experiments go beyond the original Anthropic paper:
+
+```bash
+# Computation in superposition: can models compute abs() through a bottleneck?
+uv run python -m superposition train --preset computation_abs
+uv run python -m superposition analyze --analysis interference --model computation --checkpoint checkpoints/computation_abs.pt
+
+# Continuous thought model: iterative refinement with confidence estimation
+uv run python -m superposition train --model continuous_thought
+uv run python -m superposition analyze --analysis interference --model continuous_thought --checkpoint checkpoints/continuous_thought.pt
 ```
 
 ### Programmatic Usage
@@ -238,6 +263,8 @@ torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 --master_addr=NODE0_IP --ma
 | **Toy** | W^T W autoencoder demonstrating basic superposition | `num_features`, `num_hidden`, `num_instances` |
 | **Transformer** | GPT2-based model studying superposition with attention | `num_features`, `num_hidden`, `n_layers`, `n_heads` |
 | **Translation** | MarianMT with learned bottleneck | `base_model_name`, `hidden_size` |
+| **Computation** | Nonlinear computation (abs/square/threshold) through bottleneck | `target_fn`, `mlp_hidden`, `num_features`, `num_hidden` |
+| **Continuous Thought** | Translation bottleneck with iterative thought refinement | `num_thought_steps`, `thought_mlp_expansion`, `use_confidence_head` |
 
 ## Analysis
 
@@ -246,6 +273,8 @@ torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 --master_addr=NODE0_IP --ma
 | **Interference Heatmap** | Shows cosine similarity between learned feature directions | Heatmap PNG showing orthogonal vs. superposed features |
 | **Max-Activating Examples** | Identifies tokens that maximally activate each bottleneck neuron | Table of polysemantic neurons and their top tokens |
 | **POS-Tagged Embeddings** | Colors embeddings by Part-of-Speech to verify linguistic structure | Scatter plot with NOUN/VERB/ADJ clusters |
+| **Phase Diagram** | Sweeps sparsity × importance to map superposition transitions | Phase diagram heatmap + per-feature dimensionality curves |
+| **Geometric Structure** | Detects polytope arrangements (digons, triangles, pentagons) in learned weights | Multi-panel figure with angle histograms and structure classification |
 
 ## Testing
 
@@ -259,11 +288,16 @@ uv run pytest tests/tests.py --cov=superposition --cov-report=term-missing
 
 ## Key Concepts
 
-- **Superposition**: Networks encoding more features than dimensions by using overlapping representations
+- **Superposition (representational)**: Networks encoding more features than dimensions by using overlapping representations (Anthropic, 2022)
+- **Superposition (reasoning)**: Multiple reasoning traces encoded simultaneously in continuous thought vectors (Zhu et al., 2025)
 - **Feature Probability**: Sparsity level of each feature (sparser features are more likely to superpose)
 - **Importance**: Relative weight of features in the loss function
 - **Polysemanticity**: Individual neurons responding to multiple unrelated features
 - **Interference**: The degree to which feature directions overlap (measured by cosine similarity)
+- **Phase Transition**: Sharp boundary between "dedicated neuron" and "superposition" regimes as sparsity changes
+- **Polytope Structure**: Geometric arrangements (digons, triangles, pentagons) that features adopt in superposition
+- **Computation in Superposition**: Performing nonlinear functions on features while they remain compressed
+- **Continuous Thought**: Iterative refinement of latent representations, bridging feature and reasoning superposition
 
 ## License
 
