@@ -56,7 +56,8 @@ def compute_interference_heatmap(
         save_path: Path to save the heatmap figure.
         title: Plot title. Auto-generated if None.
         figsize: Figure size in inches.
-        model_type: Type of model ('toy', 'transformer', 'translation').
+        model_type: Type of model ('toy', 'transformer', 'translation',
+            'computation', 'continuous_thought').
 
     Returns:
         The cosine similarity matrix as a tensor.
@@ -77,6 +78,17 @@ def compute_interference_heatmap(
             weight_matrix = model.input_projection.weight.detach().T  # -> (features, hidden)
         elif model_type == "translation":
             # TranslationModel: encoder_bottleneck weight is (hidden, encoder_dim)
+            weight_matrix = model.encoder_bottleneck.weight.detach().T  # -> (encoder_dim, hidden)
+        elif model_type == "computation":
+            # ComputationModel: W_enc shape is (num_instances, num_features, num_hidden)
+            weights = model.W_enc.detach()
+            if weights.dim() == 3:
+                # Average across instances for a summary view
+                weight_matrix = weights.mean(dim=0)  # (num_features, num_hidden)
+            else:
+                weight_matrix = weights
+        elif model_type == "continuous_thought":
+            # ContinuousThoughtModel: encoder_bottleneck weight is (hidden, encoder_dim)
             weight_matrix = model.encoder_bottleneck.weight.detach().T  # -> (encoder_dim, hidden)
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
