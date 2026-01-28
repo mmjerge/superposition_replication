@@ -6,6 +6,22 @@ This model bridges two definitions of superposition:
 2. Zhu et al.'s "Reasoning by Superposition" (2025): multiple reasoning
    traces encoded simultaneously in continuous thought vectors.
 
+The continuous thought mechanism is inspired by the Coconut (Chain of Continuous
+Thought) architecture from Facebook Research:
+
+    Hao, S., Sukhbaatar, S., Su, D., Li, X., Hu, Z., Weston, J., & Tian, Y. (2024).
+    Training Large Language Models to Reason in a Continuous Latent Space.
+    arXiv preprint arXiv:2412.06769.
+    https://github.com/facebookresearch/coconut
+
+Key adaptations from Coconut:
+- Hidden state feedback: Each thought step's output is fed back as input to the
+  next step, enabling iterative refinement in latent space.
+- Multi-stage training: Support for curriculum learning where the number of
+  thought steps increases progressively.
+- Latent reasoning: Computation happens in continuous representation space
+  rather than discrete token space.
+
 The model extends the translation bottleneck with an iterative refinement
 loop where the bottleneck representation is updated over T "thought steps"
 before decoding. This allows studying whether:
@@ -16,7 +32,8 @@ before decoding. This allows studying whether:
 Architecture:
     encoder → bottleneck → [thought_step × T] → expansion → decoder
     where each thought step refines the bottleneck state via a learned
-    update rule, optionally producing a confidence estimate.
+    update rule with hidden state feedback, optionally producing a
+    confidence estimate.
 """
 
 import torch
@@ -35,6 +52,16 @@ class ContinuousThoughtModel(nn.Module):
     Extends the translation bottleneck with T recurrent thought steps that
     refine the compressed representation before decoding. Each step can be
     analyzed for superposition structure and confidence.
+
+    Inspired by Coconut (Hao et al., 2024), this model performs reasoning in
+    continuous latent space rather than discrete token space. The key insight
+    is that hidden states from each thought step are fed back as input to the
+    next step, enabling the model to iteratively refine its internal
+    representation before committing to a final output.
+
+    References:
+        - Coconut: https://github.com/facebookresearch/coconut
+        - Paper: arXiv:2412.06769
     """
 
     def __init__(
@@ -59,6 +86,7 @@ class ContinuousThoughtModel(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_thought_steps = num_thought_steps
+        self.active_thought_steps = num_thought_steps  # For curriculum learning
         self.use_confidence_head = use_confidence_head
         self._device = device or torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
@@ -83,10 +111,16 @@ class ContinuousThoughtModel(nn.Module):
         )
 
         # Gating mechanism: how much to update vs retain at each step
+        # Inspired by Coconut's hidden state feedback where previous hidden
+        # states are used to update the current representation
         self.thought_gate = nn.Sequential(
             nn.Linear(hidden_size * 2, hidden_size),
             nn.Sigmoid(),
         )
+
+        # Hidden state feedback projection (Coconut-inspired)
+        # Projects the output hidden state back to input space for next step
+        self.hidden_feedback = nn.Linear(hidden_size, hidden_size)
 
         # Confidence estimation head (per thought step)
         if use_confidence_head:
@@ -144,17 +178,23 @@ class ContinuousThoughtModel(nn.Module):
         # Compress to bottleneck
         hidden = self.encoder_bottleneck(encoder_outputs[0])
 
-        # Iterative thought refinement
+        # Iterative thought refinement (Coconut-style continuous reasoning)
+        # Use active_thought_steps for curriculum learning support
         thought_states = [hidden] if return_thought_states else None
         confidences = [] if return_thought_states and self.use_confidence_head else None
 
-        for t in range(self.num_thought_steps):
-            # Compute update proposal
+        for t in range(self.active_thought_steps):
+            # Compute update proposal through thought MLP
             update = self.thought_step(hidden)
 
             # Gated update: blend old state with proposed update
+            # This is analogous to Coconut's hidden state feedback mechanism
             gate = self.thought_gate(torch.cat([hidden, update], dim=-1))
             hidden = gate * update + (1 - gate) * hidden
+
+            # Apply hidden feedback projection (Coconut-inspired)
+            # Projects hidden state for next iteration's input
+            hidden = self.hidden_feedback(hidden) + hidden  # Residual connection
 
             if return_thought_states:
                 thought_states.append(hidden.detach())
@@ -199,6 +239,46 @@ class ContinuousThoughtModel(nn.Module):
     def get_trainable_parameters(self):
         """Get only the trainable parameters for the optimizer."""
         return [p for p in self.parameters() if p.requires_grad]
+
+    def set_active_thought_steps(self, num_steps: int) -> None:
+        """Set the number of active thought steps for curriculum learning.
+
+        This enables multi-stage training inspired by Coconut, where the model
+        starts with fewer thought steps and gradually increases complexity.
+
+        Args:
+            num_steps: Number of thought steps to use (1 to num_thought_steps).
+        """
+        if num_steps < 1 or num_steps > self.num_thought_steps:
+            raise ValueError(
+                f"num_steps must be between 1 and {self.num_thought_steps}, "
+                f"got {num_steps}"
+            )
+        self.active_thought_steps = num_steps
+        logger.info(f"Set active thought steps to {num_steps}/{self.num_thought_steps}")
+
+    def get_curriculum_schedule(self, total_epochs: int) -> list[int]:
+        """Get a curriculum schedule for multi-stage training.
+
+        Returns a list of epoch indices where the number of thought steps
+        should increase. Inspired by Coconut's multi-stage training approach.
+
+        Args:
+            total_epochs: Total number of training epochs.
+
+        Returns:
+            List of (epoch, num_steps) tuples for curriculum progression.
+        """
+        if self.num_thought_steps == 1:
+            return [(0, 1)]
+
+        epochs_per_stage = max(1, total_epochs // self.num_thought_steps)
+        schedule = []
+        for stage in range(self.num_thought_steps):
+            epoch = stage * epochs_per_stage
+            num_steps = stage + 1
+            schedule.append((epoch, num_steps))
+        return schedule
 
     def analyze_thought_evolution(
         self,

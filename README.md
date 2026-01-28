@@ -135,8 +135,13 @@ uv run python -m superposition train --preset computation_abs
 uv run python -m superposition analyze --analysis interference --model computation --checkpoint checkpoints/computation_abs.pt
 
 # Continuous thought model: iterative refinement with confidence estimation
+# Inspired by Coconut (Hao et al., 2024) - reasoning in continuous latent space
 uv run python -m superposition train --model continuous_thought
 uv run python -m superposition analyze --analysis interference --model continuous_thought --checkpoint checkpoints/continuous_thought.pt
+
+# The model supports curriculum learning via progressive thought step increases:
+# - Starts with 1 thought step, gradually increases to num_thought_steps
+# - Hidden states are fed back to subsequent steps (Coconut-style feedback)
 ```
 
 ### Programmatic Usage
@@ -264,7 +269,7 @@ torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 --master_addr=NODE0_IP --ma
 | **Transformer** | GPT2-based model studying superposition with attention | `num_features`, `num_hidden`, `n_layers`, `n_heads` |
 | **Translation** | MarianMT with learned bottleneck | `base_model_name`, `hidden_size` |
 | **Computation** | Nonlinear computation (abs/square/threshold) through bottleneck | `target_fn`, `mlp_hidden`, `num_features`, `num_hidden` |
-| **Continuous Thought** | Translation bottleneck with iterative thought refinement | `num_thought_steps`, `thought_mlp_expansion`, `use_confidence_head` |
+| **Continuous Thought** | Translation bottleneck with iterative thought refinement, inspired by [Coconut](https://github.com/facebookresearch/coconut) (Hao et al., 2024) | `num_thought_steps`, `thought_mlp_expansion`, `use_confidence_head` |
 
 ## Analysis
 
@@ -297,7 +302,7 @@ uv run pytest tests/tests.py --cov=superposition --cov-report=term-missing
 - **Phase Transition**: Sharp boundary between "dedicated neuron" and "superposition" regimes as sparsity changes
 - **Polytope Structure**: Geometric arrangements (digons, triangles, pentagons) that features adopt in superposition
 - **Computation in Superposition**: Performing nonlinear functions on features while they remain compressed
-- **Continuous Thought**: Iterative refinement of latent representations, bridging feature and reasoning superposition
+- **Continuous Thought**: Iterative refinement of latent representations, bridging feature and reasoning superposition. Based on the [Coconut](https://github.com/facebookresearch/coconut) architecture (Hao et al., 2024) which performs reasoning in continuous latent space with hidden state feedback.
 
 ## License
 
@@ -310,5 +315,27 @@ MIT License - see [LICENSE](LICENSE) for details.
   title = {Model Superposition Replication Study},
   year = {2024},
   url = {https://github.com/mmjerge/superposition_replication}
+}
+```
+
+### Related Works
+
+This project builds upon and extends findings from:
+
+```bibtex
+@article{elhage2022toy,
+  title = {Toy Models of Superposition},
+  author = {Elhage, Nelson and others},
+  journal = {Transformer Circuits Thread},
+  year = {2022},
+  url = {https://transformer-circuits.pub/2022/toy_model/index.html}
+}
+
+@article{hao2024training,
+  title = {Training Large Language Models to Reason in a Continuous Latent Space},
+  author = {Hao, Shibo and Sukhbaatar, Sainbayar and Su, DiJia and Li, Xian and Hu, Zhiting and Weston, Jason and Tian, Yuandong},
+  journal = {arXiv preprint arXiv:2412.06769},
+  year = {2024},
+  url = {https://github.com/facebookresearch/coconut}
 }
 ```
