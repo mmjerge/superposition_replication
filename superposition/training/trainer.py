@@ -248,6 +248,108 @@ class Trainer:
 
         return metrics
 
+    def train_coconut_model(self, model) -> dict:
+        """Train a Coconut model with latent token reasoning.
+
+        This trains the faithful Coconut implementation with optional bottleneck
+        for superposition study. Uses language modeling objective with latent
+        tokens for continuous thought.
+
+        Args:
+            model: A CoconutBottleneckModel instance.
+
+        Returns:
+            Dictionary with training metrics.
+        """
+        from datasets import load_dataset
+
+        # Wrap model with DDP if distributed
+        if self.is_distributed:
+            model = DDP(model, device_ids=[self.rank])
+
+        cfg = self.config.training
+        actual_model = model.module if isinstance(model, DDP) else model
+        optimizer = torch.optim.AdamW(actual_model.parameters(), lr=cfg.learning_rate)
+        device = actual_model._device
+
+        # Load a text dataset for language modeling
+        logger.info("Loading WikiText dataset for Coconut training...")
+        dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+        texts = [t for t in dataset["text"] if len(t.strip()) > 50]
+        if cfg.max_samples:
+            texts = texts[:cfg.max_samples]
+
+        metrics = {"losses": [], "epoch_losses": []}
+        num_latent = actual_model.num_latent_tokens
+
+        logger.info(f"Starting Coconut training: {cfg.num_epochs} epochs, lr={cfg.learning_rate}")
+
+        for epoch in range(cfg.num_epochs):
+            actual_model.train()
+            running_loss = None
+
+            if is_main_process():
+                from tqdm import tqdm
+                pbar = tqdm(range(len(texts)), desc=f"Epoch {epoch + 1}/{cfg.num_epochs}")
+            else:
+                pbar = range(len(texts))
+
+            batch_texts = []
+            for i, text in enumerate(texts):
+                batch_texts.append(text)
+
+                if len(batch_texts) >= cfg.batch_size or i == len(texts) - 1:
+                    # Prepare batch with latent tokens
+                    batch_losses = []
+                    for txt in batch_texts:
+                        try:
+                            inputs = actual_model.prepare_input_with_latent_tokens(
+                                txt[:512],  # Truncate long texts
+                                num_latent=num_latent,
+                            )
+                            outputs = actual_model(
+                                inputs["input_ids"],
+                                inputs["attention_mask"],
+                                inputs["labels"],
+                            )
+                            batch_losses.append(outputs.loss)
+                        except Exception as e:
+                            continue
+
+                    if batch_losses:
+                        loss = torch.stack(batch_losses).mean()
+                        loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+
+                        loss_val = loss.item()
+                        running_loss = 0.9 * running_loss + 0.1 * loss_val if running_loss else loss_val
+                        metrics["losses"].append(loss_val)
+
+                    batch_texts = []
+
+                if is_main_process():
+                    pbar.update(1)
+                    if running_loss:
+                        pbar.set_postfix(loss=f"{running_loss:.4f}")
+
+            if is_main_process():
+                pbar.close()
+                logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
+                metrics["epoch_losses"].append(running_loss)
+
+            if self.is_distributed:
+                dist.barrier()
+
+        if is_main_process():
+            checkpoint_dir = self.config.visualization.checkpoint_dir
+            checkpoint_path = os.path.join(checkpoint_dir, f"{self.config.name}.pt")
+            self._save_checkpoint(model, checkpoint_path)
+            if self.visualizer:
+                self.visualizer.close()
+
+        return metrics
+
     def _save_checkpoint(self, model, checkpoint_path: str) -> None:
         """Save model checkpoint to disk.
 

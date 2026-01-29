@@ -60,7 +60,7 @@ Examples:
     train_parser = subparsers.add_parser("train", help="Train a superposition model")
     train_parser.add_argument(
         "--model", type=str,
-        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought", "coconut"],
         default="toy", help="Model type to train",
     )
     train_parser.add_argument("--config", type=str, help="Path to YAML config file")
@@ -100,7 +100,7 @@ Examples:
     )
     analyze_parser.add_argument(
         "--model", type=str, required=True,
-        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought", "coconut"],
         help="Model type",
     )
     analyze_parser.add_argument(
@@ -162,6 +162,7 @@ _DEFAULT_PRESETS = {
     "translation": "translation",
     "computation": "computation_abs",
     "continuous_thought": "continuous_thought",
+    "coconut": "coconut",
 }
 
 
@@ -351,6 +352,19 @@ def run_train(config: ExperimentConfig) -> None:
             device=device,
         )
         trainer.train_translation_model(model, train_loader, val_loader)
+
+    elif model_type == "coconut":
+        from superposition.models.coconut import CoconutBottleneckModel
+
+        model = CoconutBottleneckModel(
+            model_name=config.model.coconut_base_model,
+            bottleneck_dim=config.model.bottleneck_dim,
+            num_latent_tokens=config.model.num_latent_tokens,
+            device=device,
+        )
+        # Coconut uses language modeling, so we train it differently
+        # For now, use a simple training loop (TODO: add dedicated trainer method)
+        trainer.train_coconut_model(model)
 
     else:
         logger.error(f"Unknown model type: {model_type}")

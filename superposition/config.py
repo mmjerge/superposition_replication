@@ -11,7 +11,7 @@ import yaml
 @dataclass
 class ModelConfig:
     """Configuration for model architecture."""
-    model_type: str = "toy"  # "toy", "transformer", "translation", "computation", "continuous_thought"
+    model_type: str = "toy"  # "toy", "transformer", "translation", "computation", "continuous_thought", "coconut"
     num_features: int = 5
     num_hidden: int = 2
     num_instances: int = 10
@@ -32,6 +32,11 @@ class ModelConfig:
     num_thought_steps: int = 4
     thought_mlp_expansion: int = 2
     use_confidence_head: bool = True
+
+    # Coconut-specific (faithful implementation)
+    coconut_base_model: str = "gpt2"  # "gpt2", "gpt2-medium", etc.
+    bottleneck_dim: int = 256  # Bottleneck dimension for superposition study
+    num_latent_tokens: int = 4  # Number of latent reasoning tokens
 
 
 @dataclass
@@ -192,6 +197,31 @@ PRESETS = {
         ),
         training=TrainingConfig(
             batch_size=4, num_epochs=10, learning_rate=1e-4, max_samples=10000
+        ),
+    ),
+    # Coconut: Faithful implementation with bottleneck for superposition study
+    "coconut": ExperimentConfig(
+        name="coconut",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=256,
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "coconut_no_bottleneck": ExperimentConfig(
+        name="coconut_no_bottleneck",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=768,  # Same as hidden_size, no compression
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
         ),
     ),
 }
