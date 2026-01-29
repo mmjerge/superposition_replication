@@ -6,34 +6,46 @@ This model bridges two definitions of superposition:
 2. Zhu et al.'s "Reasoning by Superposition" (2025): multiple reasoning
    traces encoded simultaneously in continuous thought vectors.
 
-The continuous thought mechanism is inspired by the Coconut (Chain of Continuous
-Thought) architecture from Facebook Research:
+================================================================================
+COCONUT CITATION AND ATTRIBUTION
+================================================================================
+
+This implementation is INSPIRED BY but NOT IDENTICAL TO the Coconut architecture:
 
     Hao, S., Sukhbaatar, S., Su, D., Li, X., Hu, Z., Weston, J., & Tian, Y. (2024).
     Training Large Language Models to Reason in a Continuous Latent Space.
     arXiv preprint arXiv:2412.06769.
     https://github.com/facebookresearch/coconut
+    License: MIT
 
-Key adaptations from Coconut:
-- Hidden state feedback: Each thought step's output is fed back as input to the
-  next step, enabling iterative refinement in latent space.
-- Multi-stage training: Support for curriculum learning where the number of
-  thought steps increases progressively.
-- Latent reasoning: Computation happens in continuous representation space
-  rather than discrete token space.
+WHAT COCONUT DOES (original):
+- Works on causal LMs (GPT2, Llama)
+- Uses special <bot>/<eot> latent tokens in the input sequence
+- Replaces latent token embeddings with hidden states from previous position
+- Multi-pass forward through the FULL model for each latent token
+- Progressive multi-stage training (increase latent tokens over stages)
 
-The model extends the translation bottleneck with an iterative refinement
-loop where the bottleneck representation is updated over T "thought steps"
-before decoding. This allows studying whether:
-- The model develops parallel reasoning traces (CoT superposition)
-- Confidence in the representation evolves across thought steps
-- Feature superposition and reasoning superposition interact
+WHAT THIS IMPLEMENTATION DOES (adaptation for superposition study):
+- Works on seq2seq translation (MarianMT) with a learned bottleneck
+- Uses a FIXED number of thought steps (no latent tokens in input)
+- Gated recurrent update in BOTTLENECK SPACE (not full model passes)
+- Hidden feedback projection with residual connection
+- Confidence estimation head (not in original Coconut)
+
+KEY DIFFERENCES:
+- Coconut: hidden_states[i-1] replaces embedding[i] for latent tokens
+- This: gated_update(hidden) + residual feedback in bottleneck space
+- Coconut: reasoning through full transformer layers per thought
+- This: reasoning through small MLP in compressed bottleneck
+
+The goal is to study whether REPRESENTATIONAL SUPERPOSITION (Anthropic) interacts
+with ITERATIVE LATENT REASONING (Coconut-style) in a bottleneck setting.
+================================================================================
 
 Architecture:
     encoder → bottleneck → [thought_step × T] → expansion → decoder
     where each thought step refines the bottleneck state via a learned
-    update rule with hidden state feedback, optionally producing a
-    confidence estimate.
+    gated update rule, optionally producing a confidence estimate.
 """
 
 import torch
@@ -49,18 +61,19 @@ logger = get_logger(__name__)
 class ContinuousThoughtModel(nn.Module):
     """Translation model with iterative continuous thought refinement.
 
-    Extends the translation bottleneck with T recurrent thought steps that
-    refine the compressed representation before decoding. Each step can be
-    analyzed for superposition structure and confidence.
+    NOTE: This is an ADAPTATION inspired by Coconut, not a direct port.
+    See module docstring for detailed attribution and differences.
 
-    Inspired by Coconut (Hao et al., 2024), this model performs reasoning in
-    continuous latent space rather than discrete token space. The key insight
-    is that hidden states from each thought step are fed back as input to the
-    next step, enabling the model to iteratively refine its internal
-    representation before committing to a final output.
+    Key components:
+    - encoder_bottleneck: Compresses encoder output (FROM: Anthropic superposition)
+    - thought_step: MLP that proposes updates (INSPIRED BY: Coconut latent reasoning)
+    - thought_gate: Controls update blending (OUR ADDITION: not in Coconut)
+    - hidden_feedback: Projects state for next step (INSPIRED BY: Coconut feedback)
+    - confidence_head: Estimates confidence (OUR ADDITION: not in Coconut)
+    - decoder_expansion: Expands back to decoder (FROM: Anthropic superposition)
 
     References:
-        - Coconut: https://github.com/facebookresearch/coconut
+        - Coconut: https://github.com/facebookresearch/coconut (MIT License)
         - Paper: arXiv:2412.06769
     """
 
@@ -184,17 +197,20 @@ class ContinuousThoughtModel(nn.Module):
         confidences = [] if return_thought_states and self.use_confidence_head else None
 
         for t in range(self.active_thought_steps):
-            # Compute update proposal through thought MLP
+            # [INSPIRED BY COCONUT] Compute update - analogous to Coconut's
+            # multi-pass forward, but here we use a small MLP in bottleneck space
+            # instead of full transformer layers
             update = self.thought_step(hidden)
 
-            # Gated update: blend old state with proposed update
-            # This is analogous to Coconut's hidden state feedback mechanism
+            # [OUR ADDITION - NOT IN COCONUT] Gated update mechanism
+            # Coconut directly replaces embeddings; we use learned gating
             gate = self.thought_gate(torch.cat([hidden, update], dim=-1))
             hidden = gate * update + (1 - gate) * hidden
 
-            # Apply hidden feedback projection (Coconut-inspired)
-            # Projects hidden state for next iteration's input
-            hidden = self.hidden_feedback(hidden) + hidden  # Residual connection
+            # [INSPIRED BY COCONUT] Hidden state feedback
+            # Coconut: hidden_states[i-1] -> embedding[i]
+            # Here: project and add as residual for next iteration
+            hidden = self.hidden_feedback(hidden) + hidden
 
             if return_thought_states:
                 thought_states.append(hidden.detach())
