@@ -521,9 +521,10 @@ def run_analyze(args) -> None:
         if model_type == "toy":
             compute_interference_per_instance(model, save_dir=args.save_dir)
         else:
+            # Include model type in filename to avoid overwriting
             compute_interference_heatmap(
                 model,
-                save_path=f"{args.save_dir}/interference_heatmap.png",
+                save_path=f"{args.save_dir}/interference_heatmap_{model_type}.png",
                 model_type=model_type,
             )
 
