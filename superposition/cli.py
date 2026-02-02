@@ -60,7 +60,7 @@ Examples:
     train_parser = subparsers.add_parser("train", help="Train a superposition model")
     train_parser.add_argument(
         "--model", type=str,
-        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought", "coconut"],
         default="toy", help="Model type to train",
     )
     train_parser.add_argument("--config", type=str, help="Path to YAML config file")
@@ -100,7 +100,7 @@ Examples:
     )
     analyze_parser.add_argument(
         "--model", type=str, required=True,
-        choices=["toy", "transformer", "translation", "computation", "continuous_thought"],
+        choices=["toy", "transformer", "translation", "computation", "continuous_thought", "coconut"],
         help="Model type",
     )
     analyze_parser.add_argument(
@@ -162,6 +162,7 @@ _DEFAULT_PRESETS = {
     "translation": "translation",
     "computation": "computation_abs",
     "continuous_thought": "continuous_thought",
+    "coconut": "coconut",
 }
 
 
@@ -328,29 +329,32 @@ def run_train(config: ExperimentConfig) -> None:
 
     elif model_type == "continuous_thought":
         from superposition.models.continuous_thought import ContinuousThoughtModel
-        from superposition.utils.data import TranslationDataset, create_dataloaders
-        from transformers import MarianTokenizer
 
-        tokenizer = MarianTokenizer.from_pretrained(config.model.base_model_name)
-        dataset = TranslationDataset(
-            tokenizer=tokenizer,
-            max_samples=config.training.max_samples,
-        )
-        train_loader, val_loader = create_dataloaders(
-            dataset,
-            batch_size=config.training.batch_size,
-            distributed=(world_size > 1),
-        )
-
+        # Create GPT2-based continuous thought model with bottleneck
         model = ContinuousThoughtModel(
-            base_model_name=config.model.base_model_name,
-            hidden_size=config.model.num_hidden,
+            base_model_name=config.model.coconut_base_model,
+            bottleneck_dim=config.model.bottleneck_dim,
             num_thought_steps=config.model.num_thought_steps,
             thought_mlp_expansion=config.model.thought_mlp_expansion,
             use_confidence_head=config.model.use_confidence_head,
             device=device,
         )
-        trainer.train_translation_model(model, train_loader, val_loader)
+
+        # Use dedicated trainer method for continuous thought model
+        trainer.train_continuous_thought_model(model)
+
+    elif model_type == "coconut":
+        from superposition.models.coconut import CoconutBottleneckModel
+
+        model = CoconutBottleneckModel(
+            model_name=config.model.coconut_base_model,
+            bottleneck_dim=config.model.bottleneck_dim,
+            num_latent_tokens=config.model.num_latent_tokens,
+            device=device,
+        )
+        # Coconut uses language modeling, so we train it differently
+        # For now, use a simple training loop (TODO: add dedicated trainer method)
+        trainer.train_coconut_model(model)
 
     else:
         logger.error(f"Unknown model type: {model_type}")
@@ -485,8 +489,8 @@ def run_analyze(args) -> None:
 
         config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["continuous_thought"]
         model = ContinuousThoughtModel(
-            base_model_name=config.model.base_model_name,
-            hidden_size=config.model.num_hidden,
+            base_model_name=config.model.coconut_base_model,
+            bottleneck_dim=config.model.bottleneck_dim,
             num_thought_steps=config.model.num_thought_steps,
             thought_mlp_expansion=config.model.thought_mlp_expansion,
             use_confidence_head=config.model.use_confidence_head,
@@ -496,6 +500,22 @@ def run_analyze(args) -> None:
             checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
             model.load_state_dict(torch.load(checkpoint_path, map_location=device))
             logger.info(f"Loaded checkpoint: {checkpoint_path}")
+
+    elif model_type == "coconut":
+        from superposition.models.coconut import CoconutBottleneckModel
+
+        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["coconut"]
+        model = CoconutBottleneckModel(
+            model_name=config.model.coconut_base_model,
+            bottleneck_dim=config.model.bottleneck_dim,
+            num_latent_tokens=config.model.num_latent_tokens,
+            device=device,
+        )
+        if args.checkpoint:
+            checkpoint_path = _resolve_checkpoint_path(args.checkpoint, config)
+            model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            logger.info(f"Loaded checkpoint: {checkpoint_path}")
+
     else:
         logger.error(f"Unknown model type: {model_type}")
         sys.exit(1)
@@ -507,9 +527,10 @@ def run_analyze(args) -> None:
         if model_type == "toy":
             compute_interference_per_instance(model, save_dir=args.save_dir)
         else:
+            # Include model type in filename to avoid overwriting
             compute_interference_heatmap(
                 model,
-                save_path=f"{args.save_dir}/interference_heatmap.png",
+                save_path=f"{args.save_dir}/interference_heatmap_{model_type}.png",
                 model_type=model_type,
             )
 

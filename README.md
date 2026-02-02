@@ -270,6 +270,7 @@ torchrun --nproc_per_node=4 --nnodes=2 --node_rank=1 --master_addr=NODE0_IP --ma
 | **Translation** | MarianMT with learned bottleneck | `base_model_name`, `hidden_size` |
 | **Computation** | Nonlinear computation (abs/square/threshold) through bottleneck | `target_fn`, `mlp_hidden`, `num_features`, `num_hidden` |
 | **Continuous Thought** | Translation bottleneck with iterative thought refinement, inspired by [Coconut](https://github.com/facebookresearch/coconut) (Hao et al., 2024) | `num_thought_steps`, `thought_mlp_expansion`, `use_confidence_head` |
+| **Coconut** | Faithful [Coconut](https://github.com/facebookresearch/coconut) implementation with latent tokens and optional bottleneck for superposition study | `coconut_base_model`, `bottleneck_dim`, `num_latent_tokens` |
 
 ## Analysis
 
