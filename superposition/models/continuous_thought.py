@@ -1,16 +1,34 @@
-"""Continuous thought bottleneck model for bridging superposition paradigms.
+"""Continuous thought model bridging representational and reasoning superposition.
 
 This model bridges two definitions of superposition:
 1. Anthropic's "Toy Models of Superposition" (2022): features stored in
    overlapping neural representations due to dimensional compression.
-2. Zhu et al.'s "Reasoning by Superposition" (2025): multiple reasoning
-   traces encoded simultaneously in continuous thought vectors.
+2. Coconut's reasoning superposition (Hao et al., 2024): iterative reasoning
+   in continuous latent space via hidden state feedback.
 
 ================================================================================
-COCONUT CITATION AND ATTRIBUTION
+DESIGN RATIONALE
 ================================================================================
 
-This implementation is INSPIRED BY but NOT IDENTICAL TO the Coconut architecture:
+To fairly compare with Coconut and study the interaction between representational
+and reasoning superposition, this model:
+
+1. Uses GPT2 (decoder-only) - SAME architecture as Coconut
+2. Adds a BOTTLENECK layer - forces representational superposition
+3. Has iterative THOUGHT STEPS - enables reasoning superposition study
+
+Architecture:
+    input → embedding → GPT2_layers → BOTTLENECK → thought_steps → output
+                                         ↑              ↑
+                              Representational    Reasoning
+                              Superposition       Superposition
+
+This lets us ask: "When features are compressed (superposed) in a bottleneck,
+how does that affect the model's ability to do iterative reasoning?"
+
+================================================================================
+COCONUT CITATION
+================================================================================
 
     Hao, S., Sukhbaatar, S., Su, D., Li, X., Hu, Z., Weston, J., & Tian, Y. (2024).
     Training Large Language Models to Reason in a Continuous Latent Space.
@@ -18,39 +36,13 @@ This implementation is INSPIRED BY but NOT IDENTICAL TO the Coconut architecture
     https://github.com/facebookresearch/coconut
     License: MIT
 
-WHAT COCONUT DOES (original):
-- Works on causal LMs (GPT2, Llama)
-- Uses special <bot>/<eot> latent tokens in the input sequence
-- Replaces latent token embeddings with hidden states from previous position
-- Multi-pass forward through the FULL model for each latent token
-- Progressive multi-stage training (increase latent tokens over stages)
-
-WHAT THIS IMPLEMENTATION DOES (adaptation for superposition study):
-- Works on seq2seq models (T5) with a learned bottleneck
-- Uses a FIXED number of thought steps (no latent tokens in input)
-- Gated recurrent update in BOTTLENECK SPACE (not full model passes)
-- Hidden feedback projection with residual connection
-- Confidence estimation head (not in original Coconut)
-
-KEY DIFFERENCES:
-- Coconut: hidden_states[i-1] replaces embedding[i] for latent tokens
-- This: gated_update(hidden) + residual feedback in bottleneck space
-- Coconut: reasoning through full transformer layers per thought
-- This: reasoning through small MLP in compressed bottleneck
-
-The goal is to study whether REPRESENTATIONAL SUPERPOSITION (Anthropic) interacts
-with ITERATIVE LATENT REASONING (Coconut-style) in a bottleneck setting.
 ================================================================================
-
-Architecture:
-    encoder → bottleneck → [thought_step × T] → expansion → decoder
-    where each thought step refines the bottleneck state via a learned
-    gated update rule, optionally producing a confidence estimate.
 """
 
 import torch
 from torch import nn
-from transformers import T5ForConditionalGeneration, T5Tokenizer
+from torch.nn import CrossEntropyLoss
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from typing import Optional
 
 from superposition.utils.logging import get_logger
@@ -59,28 +51,38 @@ logger = get_logger(__name__)
 
 
 class ContinuousThoughtModel(nn.Module):
-    """Seq2seq model with iterative continuous thought refinement.
+    """GPT2-based model with bottleneck and iterative thought steps.
 
-    NOTE: This is an ADAPTATION inspired by Coconut, not a direct port.
-    See module docstring for detailed attribution and differences.
+    This model bridges representational superposition (via bottleneck compression)
+    with reasoning superposition (via iterative thought refinement).
+
+    Architecture:
+        input_ids → GPT2 → hidden_states → BOTTLENECK → thought_steps → lm_head → logits
+                                              ↓
+                                    Forces features to superpose
+                                    (representational superposition)
+
+    The thought steps iteratively refine the bottleneck representation before
+    projecting back to vocabulary space, enabling study of how compressed
+    representations affect reasoning.
 
     Key components:
-    - encoder_bottleneck: Compresses encoder output (FROM: Anthropic superposition)
-    - thought_step: MLP that proposes updates (INSPIRED BY: Coconut latent reasoning)
-    - thought_gate: Controls update blending (OUR ADDITION: not in Coconut)
-    - hidden_feedback: Projects state for next step (INSPIRED BY: Coconut feedback)
-    - confidence_head: Estimates confidence (OUR ADDITION: not in Coconut)
-    - decoder_expansion: Expands back to decoder (FROM: Anthropic superposition)
+    - bottleneck_down: Compresses hidden states (forces representational superposition)
+    - thought_step: MLP that proposes updates (reasoning in compressed space)
+    - thought_gate: Controls update blending
+    - hidden_feedback: Projects state for next iteration
+    - confidence_head: Estimates confidence at each step
+    - bottleneck_up: Expands back to hidden dimension
 
     References:
         - Coconut: https://github.com/facebookresearch/coconut (MIT License)
-        - Paper: arXiv:2412.06769
+        - Anthropic: https://transformer-circuits.pub/2022/toy_model/index.html
     """
 
     def __init__(
         self,
-        base_model_name: str = "google-t5/t5-small",
-        hidden_size: int = 256,
+        base_model_name: str = "gpt2",
+        bottleneck_dim: int = 256,
         num_thought_steps: int = 4,
         thought_mlp_expansion: int = 2,
         use_confidence_head: bool = True,
@@ -89,15 +91,15 @@ class ContinuousThoughtModel(nn.Module):
         """Initialize the continuous thought model.
 
         Args:
-            base_model_name: Pre-trained T5 model name (e.g., "google-t5/t5-small").
-            hidden_size: Bottleneck dimension.
-            num_thought_steps: Number of iterative refinement steps (T).
-            thought_mlp_expansion: Expansion factor for the thought MLP.
-            use_confidence_head: Whether to produce per-step confidence scores.
-            device: Torch device.
+            base_model_name: Pre-trained GPT2 model name (gpt2, gpt2-medium, etc.)
+            bottleneck_dim: Dimension of bottleneck (smaller = more superposition)
+            num_thought_steps: Number of iterative refinement steps
+            thought_mlp_expansion: Expansion factor for thought MLP
+            use_confidence_head: Whether to produce per-step confidence scores
+            device: Torch device
         """
         super().__init__()
-        self.hidden_size = hidden_size
+        self.bottleneck_dim = bottleneck_dim
         self.num_thought_steps = num_thought_steps
         self.active_thought_steps = num_thought_steps  # For curriculum learning
         self.use_confidence_head = use_confidence_head
@@ -105,58 +107,60 @@ class ContinuousThoughtModel(nn.Module):
             "cuda" if torch.cuda.is_available() else "cpu"
         )
 
-        logger.info(f"Loading pre-trained model: {base_model_name}")
-        self.base_model = T5ForConditionalGeneration.from_pretrained(base_model_name)
-        self.tokenizer = T5Tokenizer.from_pretrained(base_model_name)
+        # Load GPT2 (decoder-only, same as Coconut)
+        logger.info(f"Loading base model: {base_model_name}")
+        self.base_model = GPT2LMHeadModel.from_pretrained(base_model_name)
+        self.tokenizer = GPT2Tokenizer.from_pretrained(base_model_name)
 
-        # T5 encoder dimension (512 for t5-small, 768 for t5-base)
-        encoder_dim = self.base_model.config.d_model
+        # Add padding token if not present
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.base_model.config.pad_token_id = self.tokenizer.eos_token_id
 
-        # Bottleneck compression
-        self.encoder_bottleneck = nn.Linear(encoder_dim, hidden_size)
+        self.hidden_size = self.base_model.config.n_embd  # 768 for gpt2
 
-        # Thought refinement: recurrent update to bottleneck representation
-        thought_dim = hidden_size * thought_mlp_expansion
+        # ==================== BOTTLENECK (Representational Superposition) ====================
+        # Compress hidden states to force features to share dimensions
+        self.bottleneck_down = nn.Linear(self.hidden_size, bottleneck_dim)
+        self.bottleneck_up = nn.Linear(bottleneck_dim, self.hidden_size)
+
+        # ==================== THOUGHT STEPS (Reasoning Superposition) ====================
+        # Iterative refinement in the compressed bottleneck space
+        thought_dim = bottleneck_dim * thought_mlp_expansion
         self.thought_step = nn.Sequential(
-            nn.LayerNorm(hidden_size),
-            nn.Linear(hidden_size, thought_dim),
+            nn.LayerNorm(bottleneck_dim),
+            nn.Linear(bottleneck_dim, thought_dim),
             nn.GELU(),
-            nn.Linear(thought_dim, hidden_size),
+            nn.Linear(thought_dim, bottleneck_dim),
         )
 
         # Gating mechanism: how much to update vs retain at each step
-        # Inspired by Coconut's hidden state feedback where previous hidden
-        # states are used to update the current representation
         self.thought_gate = nn.Sequential(
-            nn.Linear(hidden_size * 2, hidden_size),
+            nn.Linear(bottleneck_dim * 2, bottleneck_dim),
             nn.Sigmoid(),
         )
 
-        # Hidden state feedback projection (Coconut-inspired)
-        # Projects the output hidden state back to input space for next step
-        self.hidden_feedback = nn.Linear(hidden_size, hidden_size)
+        # Hidden state feedback projection
+        self.hidden_feedback = nn.Linear(bottleneck_dim, bottleneck_dim)
 
         # Confidence estimation head (per thought step)
         if use_confidence_head:
             self.confidence_head = nn.Sequential(
-                nn.Linear(hidden_size, hidden_size // 4),
+                nn.Linear(bottleneck_dim, bottleneck_dim // 4),
                 nn.ReLU(),
-                nn.Linear(hidden_size // 4, 1),
+                nn.Linear(bottleneck_dim // 4, 1),
                 nn.Sigmoid(),
             )
 
-        # Expansion back to encoder dim
-        self.decoder_expansion = nn.Linear(hidden_size, encoder_dim)
-
-        # Freeze the base model
+        # Freeze base model - only train bottleneck and thought components
         for param in self.base_model.parameters():
             param.requires_grad = False
 
         trainable = sum(p.numel() for p in self.parameters() if p.requires_grad)
         total = sum(p.numel() for p in self.parameters())
         logger.info(
-            f"ContinuousThoughtModel: encoder_dim={encoder_dim}, "
-            f"hidden_size={hidden_size}, thought_steps={num_thought_steps}, "
+            f"ContinuousThoughtModel: hidden_size={self.hidden_size}, "
+            f"bottleneck_dim={bottleneck_dim}, thought_steps={num_thought_steps}, "
             f"trainable_params={trainable:,} / total={total:,}"
         )
 
@@ -165,52 +169,53 @@ class ContinuousThoughtModel(nn.Module):
     def forward(
         self,
         input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
         labels: Optional[torch.Tensor] = None,
         return_thought_states: bool = False,
     ):
-        """Forward pass with iterative thought refinement.
+        """Forward pass with bottleneck compression and iterative thought refinement.
 
         Args:
-            input_ids: Source token IDs.
-            attention_mask: Attention mask for source.
-            labels: Target token IDs (for computing loss).
-            return_thought_states: If True, return intermediate thought states
-                and confidence scores for analysis.
+            input_ids: Token IDs [batch, seq_len]
+            attention_mask: Attention mask [batch, seq_len]
+            labels: Target token IDs for loss computation
+            return_thought_states: If True, return intermediate states for analysis
 
         Returns:
-            Model outputs. If return_thought_states=True, also returns a dict
-            with 'thought_states' and 'confidences' tensors.
+            Model outputs with loss. If return_thought_states=True, also returns
+            dict with 'thought_states' and 'confidences'.
         """
-        # Frozen encoder
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
+
+        # Get hidden states from frozen GPT2
         with torch.no_grad():
-            encoder_outputs = self.base_model.encoder(
+            transformer_outputs = self.base_model.transformer(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
+                output_hidden_states=True,
             )
 
-        # Compress to bottleneck
-        hidden = self.encoder_bottleneck(encoder_outputs.last_hidden_state)
+        hidden_states = transformer_outputs.last_hidden_state  # [batch, seq, hidden]
 
-        # Iterative thought refinement (Coconut-style continuous reasoning)
-        # Use active_thought_steps for curriculum learning support
-        thought_states = [hidden] if return_thought_states else None
+        # ==================== BOTTLENECK COMPRESSION ====================
+        # Compress to bottleneck dimension (forces representational superposition)
+        compressed = self.bottleneck_down(hidden_states)  # [batch, seq, bottleneck]
+
+        # ==================== ITERATIVE THOUGHT REFINEMENT ====================
+        thought_states = [compressed] if return_thought_states else None
         confidences = [] if return_thought_states and self.use_confidence_head else None
 
+        hidden = compressed
         for t in range(self.active_thought_steps):
-            # [INSPIRED BY COCONUT] Compute update - analogous to Coconut's
-            # multi-pass forward, but here we use a small MLP in bottleneck space
-            # instead of full transformer layers
+            # Compute update proposal
             update = self.thought_step(hidden)
 
-            # [OUR ADDITION - NOT IN COCONUT] Gated update mechanism
-            # Coconut directly replaces embeddings; we use learned gating
+            # Gated update: blend old state with proposed update
             gate = self.thought_gate(torch.cat([hidden, update], dim=-1))
             hidden = gate * update + (1 - gate) * hidden
 
-            # [INSPIRED BY COCONUT] Hidden state feedback
-            # Coconut: hidden_states[i-1] -> embedding[i]
-            # Here: project and add as residual for next iteration
+            # Hidden state feedback (residual)
             hidden = self.hidden_feedback(hidden) + hidden
 
             if return_thought_states:
@@ -218,26 +223,36 @@ class ContinuousThoughtModel(nn.Module):
                 if self.use_confidence_head:
                     # Mean-pool over sequence for per-step confidence
                     pooled = (hidden * attention_mask.unsqueeze(-1)).sum(dim=1)
-                    pooled = pooled / attention_mask.sum(dim=1, keepdim=True)
+                    pooled = pooled / attention_mask.sum(dim=1, keepdim=True).clamp(min=1)
                     conf = self.confidence_head(pooled)
                     confidences.append(conf.detach())
 
-        # Expand back to encoder dim
-        expanded = self.decoder_expansion(hidden)
+        # ==================== EXPAND AND COMPUTE LOGITS ====================
+        expanded = self.bottleneck_up(hidden)  # [batch, seq, hidden]
 
-        # Create encoder outputs with our modified hidden states
-        from transformers.modeling_outputs import BaseModelOutput
-        modified_encoder_outputs = BaseModelOutput(
-            last_hidden_state=expanded,
+        # Use GPT2's language model head
+        logits = self.base_model.lm_head(expanded)  # [batch, seq, vocab]
+
+        # Compute loss if labels provided
+        loss = None
+        if labels is not None:
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            loss_fct = CrossEntropyLoss(ignore_index=self.tokenizer.pad_token_id)
+            loss = loss_fct(
+                shift_logits.view(-1, shift_logits.size(-1)),
+                shift_labels.view(-1)
+            )
+
+        # Create output object
+        from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
+        outputs = CausalLMOutputWithCrossAttentions(
+            loss=loss,
+            logits=logits,
+            past_key_values=None,
             hidden_states=None,
             attentions=None,
-        )
-
-        # Decode through frozen decoder
-        outputs = self.base_model(
-            encoder_outputs=modified_encoder_outputs,
-            attention_mask=attention_mask,
-            labels=labels,
+            cross_attentions=None,
         )
 
         if return_thought_states:
@@ -251,8 +266,8 @@ class ContinuousThoughtModel(nn.Module):
         return outputs
 
     def get_bottleneck_weights(self) -> torch.Tensor:
-        """Get encoder bottleneck weights for visualization."""
-        return self.encoder_bottleneck.weight.detach()
+        """Get bottleneck projection weights for interference analysis."""
+        return self.bottleneck_down.weight.detach()
 
     def get_thought_step_weights(self) -> dict:
         """Get thought step MLP weights for analysis."""
@@ -266,14 +281,7 @@ class ContinuousThoughtModel(nn.Module):
         return [p for p in self.parameters() if p.requires_grad]
 
     def set_active_thought_steps(self, num_steps: int) -> None:
-        """Set the number of active thought steps for curriculum learning.
-
-        This enables multi-stage training inspired by Coconut, where the model
-        starts with fewer thought steps and gradually increases complexity.
-
-        Args:
-            num_steps: Number of thought steps to use (1 to num_thought_steps).
-        """
+        """Set the number of active thought steps for curriculum learning."""
         if num_steps < 1 or num_steps > self.num_thought_steps:
             raise ValueError(
                 f"num_steps must be between 1 and {self.num_thought_steps}, "
@@ -282,18 +290,8 @@ class ContinuousThoughtModel(nn.Module):
         self.active_thought_steps = num_steps
         logger.info(f"Set active thought steps to {num_steps}/{self.num_thought_steps}")
 
-    def get_curriculum_schedule(self, total_epochs: int) -> list[int]:
-        """Get a curriculum schedule for multi-stage training.
-
-        Returns a list of epoch indices where the number of thought steps
-        should increase. Inspired by Coconut's multi-stage training approach.
-
-        Args:
-            total_epochs: Total number of training epochs.
-
-        Returns:
-            List of (epoch, num_steps) tuples for curriculum progression.
-        """
+    def get_curriculum_schedule(self, total_epochs: int) -> list:
+        """Get a curriculum schedule for multi-stage training."""
         if self.num_thought_steps == 1:
             return [(0, 1)]
 
@@ -308,37 +306,27 @@ class ContinuousThoughtModel(nn.Module):
     def analyze_thought_evolution(
         self,
         input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
     ) -> dict:
-        """Analyze how the bottleneck representation evolves across thought steps.
+        """Analyze how the bottleneck representation evolves across thought steps."""
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
 
-        Computes per-step metrics: representation change magnitude, cosine
-        similarity between consecutive steps, and confidence evolution.
-
-        Args:
-            input_ids: Source token IDs.
-            attention_mask: Attention mask.
-
-        Returns:
-            Dictionary with analysis results.
-        """
         self.eval()
         with torch.no_grad():
             _, extra = self.forward(
                 input_ids, attention_mask, return_thought_states=True
             )
 
-        states = extra["thought_states"]  # (T+1, batch, seq, hidden)
+        states = extra["thought_states"]  # (T+1, batch, seq, bottleneck)
         num_steps = states.shape[0]
 
-        # Compute per-step change magnitude
         step_changes = []
         step_cosines = []
         for t in range(1, num_steps):
             diff = (states[t] - states[t - 1]).norm(dim=-1).mean().item()
             step_changes.append(diff)
 
-            # Cosine similarity between consecutive steps
             cos = nn.functional.cosine_similarity(
                 states[t].flatten(1), states[t - 1].flatten(1), dim=1
             ).mean().item()
@@ -356,3 +344,29 @@ class ContinuousThoughtModel(nn.Module):
             ]
 
         return result
+
+    def generate(
+        self,
+        input_ids: torch.Tensor,
+        max_new_tokens: int = 50,
+        attention_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Generate text using the model."""
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
+
+        self.eval()
+        generated = input_ids.clone()
+
+        for _ in range(max_new_tokens):
+            with torch.no_grad():
+                outputs = self.forward(generated, attention_mask=None)
+                next_token_logits = outputs.logits[:, -1, :]
+                next_token = torch.argmax(next_token_logits, dim=-1, keepdim=True)
+
+                if next_token.item() == self.tokenizer.eos_token_id:
+                    break
+
+                generated = torch.cat([generated, next_token], dim=1)
+
+        return generated

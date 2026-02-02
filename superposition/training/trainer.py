@@ -350,6 +350,144 @@ class Trainer:
 
         return metrics
 
+    def train_continuous_thought_model(self, model) -> dict:
+        """Train a Continuous Thought model with bottleneck and iterative thought steps.
+
+        This trains the GPT2-based model that bridges representational superposition
+        (via bottleneck compression) with reasoning superposition (via iterative
+        thought refinement). Uses language modeling objective.
+
+        Args:
+            model: A ContinuousThoughtModel instance.
+
+        Returns:
+            Dictionary with training metrics.
+        """
+        from datasets import load_dataset
+
+        # Wrap model with DDP if distributed
+        if self.is_distributed:
+            model = DDP(model, device_ids=[self.rank])
+
+        cfg = self.config.training
+        actual_model = model.module if isinstance(model, DDP) else model
+        optimizer = torch.optim.AdamW(
+            actual_model.get_trainable_parameters(), lr=cfg.learning_rate
+        )
+        device = actual_model._device
+
+        # Load a text dataset for language modeling
+        if is_main_process():
+            logger.info("Loading WikiText dataset for Continuous Thought training...")
+        dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
+        texts = [t for t in dataset["text"] if len(t.strip()) > 50]
+        if cfg.max_samples:
+            texts = texts[:cfg.max_samples]
+
+        metrics = {"losses": [], "epoch_losses": []}
+
+        if is_main_process():
+            logger.info(
+                f"Starting Continuous Thought training: {cfg.num_epochs} epochs, "
+                f"lr={cfg.learning_rate}, bottleneck_dim={actual_model.bottleneck_dim}, "
+                f"thought_steps={actual_model.num_thought_steps}"
+            )
+
+        # Curriculum learning schedule
+        curriculum = actual_model.get_curriculum_schedule(cfg.num_epochs)
+        if is_main_process():
+            logger.info(f"Curriculum schedule: {curriculum}")
+
+        for epoch in range(cfg.num_epochs):
+            # Apply curriculum learning - increase thought steps over epochs
+            for start_epoch, num_steps in curriculum:
+                if epoch >= start_epoch:
+                    actual_model.set_active_thought_steps(num_steps)
+
+            actual_model.train()
+            running_loss = None
+
+            if is_main_process():
+                pbar = tqdm(range(len(texts)), desc=f"Epoch {epoch + 1}/{cfg.num_epochs}")
+            else:
+                pbar = range(len(texts))
+
+            batch_texts = []
+            for i in range(len(texts)):
+                batch_texts.append(texts[i])
+
+                if len(batch_texts) >= cfg.batch_size or i == len(texts) - 1:
+                    # Tokenize and prepare batch
+                    batch_losses = []
+                    for txt in batch_texts:
+                        try:
+                            # Tokenize text
+                            encoding = actual_model.tokenizer(
+                                txt[:512],  # Truncate long texts
+                                return_tensors="pt",
+                                truncation=True,
+                                max_length=128,
+                                padding="max_length",
+                            )
+                            input_ids = encoding["input_ids"].to(device)
+                            attention_mask = encoding["attention_mask"].to(device)
+
+                            # Use input_ids as labels for language modeling
+                            outputs = actual_model(
+                                input_ids=input_ids,
+                                attention_mask=attention_mask,
+                                labels=input_ids,
+                            )
+                            if outputs.loss is not None:
+                                batch_losses.append(outputs.loss)
+                        except Exception:
+                            continue
+
+                    if batch_losses:
+                        loss = torch.stack(batch_losses).mean()
+                        loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+
+                        loss_val = loss.item()
+                        running_loss = (
+                            0.9 * running_loss + 0.1 * loss_val
+                            if running_loss
+                            else loss_val
+                        )
+                        metrics["losses"].append(loss_val)
+
+                    batch_texts = []
+
+                if is_main_process() and hasattr(pbar, "update"):
+                    pbar.update(1)
+                    if running_loss:
+                        pbar.set_postfix(
+                            loss=f"{running_loss:.4f}",
+                            steps=actual_model.active_thought_steps,
+                        )
+
+            if is_main_process():
+                if hasattr(pbar, "close"):
+                    pbar.close()
+                logger.info(
+                    f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}, "
+                    f"Active thought steps: {actual_model.active_thought_steps}"
+                )
+                metrics["epoch_losses"].append(running_loss)
+
+            if self.is_distributed:
+                dist.barrier()
+
+        if is_main_process():
+            checkpoint_dir = self.config.visualization.checkpoint_dir
+            checkpoint_path = os.path.join(checkpoint_dir, f"{self.config.name}.pt")
+            self._save_checkpoint(model, checkpoint_path)
+            if self.visualizer:
+                self.visualizer.close()
+
+        return metrics
+
     def _save_checkpoint(self, model, checkpoint_path: str) -> None:
         """Save model checkpoint to disk.
 

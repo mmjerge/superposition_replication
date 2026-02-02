@@ -189,14 +189,14 @@ PRESETS = {
         name="continuous_thought",
         model=ModelConfig(
             model_type="continuous_thought",
-            base_model_name="google-t5/t5-small",
-            num_hidden=256,
+            coconut_base_model="gpt2",  # GPT2 base for decoder-only architecture
+            bottleneck_dim=256,  # Bottleneck for representational superposition
             num_thought_steps=4,
             thought_mlp_expansion=2,
             use_confidence_head=True,
         ),
         training=TrainingConfig(
-            batch_size=4, num_epochs=10, learning_rate=1e-4, max_samples=10000
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
         ),
     ),
     # Coconut: Faithful implementation with bottleneck for superposition study

@@ -88,8 +88,8 @@ def compute_interference_heatmap(
             else:
                 weight_matrix = weights
         elif model_type == "continuous_thought":
-            # ContinuousThoughtModel: encoder_bottleneck weight is (hidden, encoder_dim)
-            weight_matrix = model.encoder_bottleneck.weight.detach().T  # -> (encoder_dim, hidden)
+            # ContinuousThoughtModel: bottleneck_down weight is (bottleneck_dim, hidden_size)
+            weight_matrix = model.bottleneck_down.weight.detach().T  # -> (hidden_size, bottleneck_dim)
         elif model_type == "coconut":
             # CoconutBottleneckModel: bottleneck_down weight is (bottleneck_dim, hidden_size)
             if model.use_bottleneck:
