@@ -329,20 +329,9 @@ def run_train(config: ExperimentConfig) -> None:
 
     elif model_type == "continuous_thought":
         from superposition.models.continuous_thought import ContinuousThoughtModel
-        from superposition.utils.data import TranslationDataset, create_dataloaders
-        from transformers import MarianTokenizer
+        from superposition.utils.data import T5Dataset, create_dataloaders
 
-        tokenizer = MarianTokenizer.from_pretrained(config.model.base_model_name)
-        dataset = TranslationDataset(
-            tokenizer=tokenizer,
-            max_samples=config.training.max_samples,
-        )
-        train_loader, val_loader = create_dataloaders(
-            dataset,
-            batch_size=config.training.batch_size,
-            distributed=(world_size > 1),
-        )
-
+        # Create model first to get tokenizer
         model = ContinuousThoughtModel(
             base_model_name=config.model.base_model_name,
             hidden_size=config.model.num_hidden,
@@ -351,6 +340,18 @@ def run_train(config: ExperimentConfig) -> None:
             use_confidence_head=config.model.use_confidence_head,
             device=device,
         )
+
+        # Use T5Dataset for text-to-text tasks
+        dataset = T5Dataset(
+            tokenizer=model.tokenizer,
+            max_samples=config.training.max_samples,
+        )
+        train_loader, val_loader = create_dataloaders(
+            dataset,
+            batch_size=config.training.batch_size,
+            distributed=(world_size > 1),
+        )
+
         trainer.train_translation_model(model, train_loader, val_loader)
 
     elif model_type == "coconut":

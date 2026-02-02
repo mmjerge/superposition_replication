@@ -26,7 +26,7 @@ WHAT COCONUT DOES (original):
 - Progressive multi-stage training (increase latent tokens over stages)
 
 WHAT THIS IMPLEMENTATION DOES (adaptation for superposition study):
-- Works on seq2seq translation (MarianMT) with a learned bottleneck
+- Works on seq2seq models (T5) with a learned bottleneck
 - Uses a FIXED number of thought steps (no latent tokens in input)
 - Gated recurrent update in BOTTLENECK SPACE (not full model passes)
 - Hidden feedback projection with residual connection
@@ -50,7 +50,7 @@ Architecture:
 
 import torch
 from torch import nn
-from transformers import MarianMTModel, MarianTokenizer
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 from typing import Optional
 
 from superposition.utils.logging import get_logger
@@ -59,7 +59,7 @@ logger = get_logger(__name__)
 
 
 class ContinuousThoughtModel(nn.Module):
-    """Translation model with iterative continuous thought refinement.
+    """Seq2seq model with iterative continuous thought refinement.
 
     NOTE: This is an ADAPTATION inspired by Coconut, not a direct port.
     See module docstring for detailed attribution and differences.
@@ -79,7 +79,7 @@ class ContinuousThoughtModel(nn.Module):
 
     def __init__(
         self,
-        base_model_name: str = "Helsinki-NLP/opus-mt-en-fr",
+        base_model_name: str = "google-t5/t5-small",
         hidden_size: int = 256,
         num_thought_steps: int = 4,
         thought_mlp_expansion: int = 2,
@@ -89,7 +89,7 @@ class ContinuousThoughtModel(nn.Module):
         """Initialize the continuous thought model.
 
         Args:
-            base_model_name: Pre-trained MarianMT model name.
+            base_model_name: Pre-trained T5 model name (e.g., "google-t5/t5-small").
             hidden_size: Bottleneck dimension.
             num_thought_steps: Number of iterative refinement steps (T).
             thought_mlp_expansion: Expansion factor for the thought MLP.
@@ -106,9 +106,10 @@ class ContinuousThoughtModel(nn.Module):
         )
 
         logger.info(f"Loading pre-trained model: {base_model_name}")
-        self.base_model = MarianMTModel.from_pretrained(base_model_name)
-        self.tokenizer = MarianTokenizer.from_pretrained(base_model_name)
+        self.base_model = T5ForConditionalGeneration.from_pretrained(base_model_name)
+        self.tokenizer = T5Tokenizer.from_pretrained(base_model_name)
 
+        # T5 encoder dimension (512 for t5-small, 768 for t5-base)
         encoder_dim = self.base_model.config.d_model
 
         # Bottleneck compression
@@ -183,13 +184,13 @@ class ContinuousThoughtModel(nn.Module):
         """
         # Frozen encoder
         with torch.no_grad():
-            encoder_outputs = self.base_model.get_encoder()(
+            encoder_outputs = self.base_model.encoder(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
             )
 
         # Compress to bottleneck
-        hidden = self.encoder_bottleneck(encoder_outputs[0])
+        hidden = self.encoder_bottleneck(encoder_outputs.last_hidden_state)
 
         # Iterative thought refinement (Coconut-style continuous reasoning)
         # Use active_thought_steps for curriculum learning support
@@ -224,11 +225,19 @@ class ContinuousThoughtModel(nn.Module):
         # Expand back to encoder dim
         expanded = self.decoder_expansion(hidden)
 
+        # Create encoder outputs with our modified hidden states
+        from transformers.modeling_outputs import BaseModelOutput
+        modified_encoder_outputs = BaseModelOutput(
+            last_hidden_state=expanded,
+            hidden_states=None,
+            attentions=None,
+        )
+
         # Decode through frozen decoder
         outputs = self.base_model(
-            encoder_outputs=(expanded,),
-            labels=labels,
+            encoder_outputs=modified_encoder_outputs,
             attention_mask=attention_mask,
+            labels=labels,
         )
 
         if return_thought_states:
