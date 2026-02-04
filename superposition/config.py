@@ -224,4 +224,147 @@ PRESETS = {
             batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
         ),
     ),
+    # =========================================================================
+    # Bottleneck Size Experiments - ContinuousThought
+    # These presets test how superposition changes with bottleneck compression
+    # =========================================================================
+    "continuous_thought_d32": ExperimentConfig(
+        name="continuous_thought_d32",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=32,  # Severe compression: 768 -> 32 (24x)
+            num_thought_steps=4,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "continuous_thought_d64": ExperimentConfig(
+        name="continuous_thought_d64",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=64,  # Heavy compression: 768 -> 64 (12x)
+            num_thought_steps=4,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "continuous_thought_d128": ExperimentConfig(
+        name="continuous_thought_d128",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=128,  # Moderate compression: 768 -> 128 (6x)
+            num_thought_steps=4,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    # Alias for d256 (default)
+    "continuous_thought_d256": ExperimentConfig(
+        name="continuous_thought_d256",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=256,  # Light compression: 768 -> 256 (3x)
+            num_thought_steps=4,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    # =========================================================================
+    # Thought Steps Experiments - Test if more steps compensate for compression
+    # =========================================================================
+    "continuous_thought_d32_steps8": ExperimentConfig(
+        name="continuous_thought_d32_steps8",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=32,
+            num_thought_steps=8,  # More steps to compensate for compression
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "continuous_thought_d64_steps8": ExperimentConfig(
+        name="continuous_thought_d64_steps8",
+        model=ModelConfig(
+            model_type="continuous_thought",
+            coconut_base_model="gpt2",
+            bottleneck_dim=64,
+            num_thought_steps=8,
+            thought_mlp_expansion=2,
+            use_confidence_head=True,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    # =========================================================================
+    # Bottleneck Size Experiments - Coconut
+    # =========================================================================
+    "coconut_d32": ExperimentConfig(
+        name="coconut_d32",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=32,
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "coconut_d64": ExperimentConfig(
+        name="coconut_d64",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=64,
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "coconut_d128": ExperimentConfig(
+        name="coconut_d128",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=128,
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
+    "coconut_d256": ExperimentConfig(
+        name="coconut_d256",
+        model=ModelConfig(
+            model_type="coconut",
+            coconut_base_model="gpt2",
+            bottleneck_dim=256,
+            num_latent_tokens=4,
+        ),
+        training=TrainingConfig(
+            batch_size=4, num_epochs=5, learning_rate=1e-4, max_samples=5000
+        ),
+    ),
 }
