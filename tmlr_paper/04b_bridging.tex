@@ -1,0 +1,73 @@
+\section{Bridging Representational and Reasoning Superposition}
+\label{sec:bridging}
+
+Recent work on chain-of-continuous-thought (Coconut) \citep{hao2024training} has introduced a distinct notion of superposition in the context of reasoning. While \citet{elhage2022toy} study \emph{representational superposition}---packing more features than dimensions---\citet{zhu2025reasoning} analyze \emph{reasoning superposition}---maintaining multiple reasoning traces simultaneously in latent space. We argue these phenomena are fundamentally connected and can be unified under a common mathematical framework.
+
+\subsection{Two Notions of Superposition}
+
+\paragraph{Representational superposition.} In the framework of \citet{elhage2022toy}, a model with $m$ hidden dimensions represents $n > m$ features by encoding each feature $i$ as a direction $\mathbf{w}_i \in \mathbb{R}^m$. Features are \emph{superposed} when their directions are non-orthogonal: $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$ for $i \neq j$. The key insight is that sparsity enables superposition---when features rarely co-activate, the interference cost $\sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2$ is low, where $p_i$ is the probability that feature $i$ is active.
+
+\paragraph{Reasoning superposition.} In continuous chain-of-thought \citep{hao2024training, zhu2025reasoning}, the model maintains a latent thought vector $\mathbf{h}_t \in \mathbb{R}^d$ that evolves over $T$ reasoning steps. \citet{zhu2025reasoning} prove that for graph reachability problems, the thought vector can be expressed as a superposition of search traces:
+\begin{equation}
+\mathbf{h}_t = \sum_{k=1}^{K} \alpha_k^{(t)} \mathbf{v}_k
+\label{eq:reasoning_superposition}
+\end{equation}
+where each $\mathbf{v}_k$ encodes a valid partial path and $\alpha_k^{(t)}$ are attention-derived weights. This enables implicit breadth-first search, with the model exploring multiple paths simultaneously rather than committing to a single trace.
+
+\subsection{A Unified Framework}
+
+We propose that both forms of superposition are instances of a general principle: \emph{neural networks compress structured information into limited representational capacity by exploiting statistical or computational sparsity}.
+
+\begin{definition}[Generalized Superposition]
+Let $\mathcal{S} = \{s_1, \ldots, s_n\}$ be a set of $n$ ``objects'' (features, reasoning traces, etc.) and $\mathbf{R} \subseteq \mathbb{R}^m$ be a representation space with $m < n$. A \emph{superposition encoding} is a mapping $\phi: \mathcal{S} \to \mathbf{R}$ such that:
+\begin{enumerate}
+    \item Each object $s_i$ is encoded as a direction $\phi(s_i) = \mathbf{w}_i$
+    \item The encoding is non-orthogonal: $\exists\, i \neq j$ such that $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$
+    \item Interference is managed by sparsity: objects that frequently co-occur have more orthogonal encodings
+\end{enumerate}
+\end{definition}
+
+Under this framework:
+\begin{itemize}
+    \item \textbf{Representational superposition}: $\mathcal{S}$ = input features, sparsity = feature activation probability
+    \item \textbf{Reasoning superposition}: $\mathcal{S}$ = valid reasoning traces, sparsity = trace validity (only correct traces should contribute to the final answer)
+\end{itemize}
+
+\subsection{The Interference-Capacity Tradeoff}
+
+Both forms of superposition exhibit a fundamental tradeoff between capacity and interference. Let $C$ denote capacity (number of objects encoded) and $I$ denote interference (reconstruction/reasoning error due to non-orthogonality).
+
+\begin{proposition}[Informal]
+For a representation space of dimension $m$, the capacity-interference tradeoff is governed by:
+\begin{equation}
+C \cdot I \geq f(m, S)
+\label{eq:tradeoff}
+\end{equation}
+where $S$ is a sparsity measure and $f$ is monotonically decreasing in both $m$ and $S$.
+\end{proposition}
+
+In representational superposition, this manifests as the phase diagram of \citet{elhage2022toy}: as sparsity increases, more features can be packed into the same dimensions. In reasoning superposition, \citet{zhu2025emergence} show that the ``index-matching logit''---which controls how strongly the model commits to individual traces---remains bounded during training, effectively balancing exploration (maintaining superposition) and exploitation (collapsing to a single trace).
+
+\subsection{Temporal Depth Compensates for Spatial Compression}
+
+A key insight from our experiments is that iterative computation can compensate for representational bottlenecks. Consider a model with bottleneck dimension $d$ and $T$ thought steps. The effective representational capacity is not simply $d$ but depends on how information flows through the $T$ iterations.
+
+\begin{proposition}[Informal]
+A model with bottleneck dimension $d$ and $T$ iterative thought steps can represent information equivalent to a model with dimension $d' > d$ and fewer steps, where $d'$ depends on the structure of the computation.
+\end{proposition}
+
+This suggests a design principle: when representational capacity is constrained (forcing superposition), adding iterative refinement steps allows the model to ``unpack'' superposed representations over time. Our continuous thought model implements this by combining:
+\begin{enumerate}
+    \item A bottleneck layer that forces representational superposition (768 $\to$ 32--256 dimensions)
+    \item Iterative thought steps that enable reasoning superposition (4--8 refinement iterations)
+\end{enumerate}
+
+\subsection{Implications}
+
+The connection between representational and reasoning superposition has several implications:
+
+\paragraph{For interpretability.} Techniques developed for analyzing representational superposition (e.g., sparse autoencoders) may transfer to reasoning superposition. Conversely, the ``superposition state'' interpretation from \citet{zhu2025reasoning} suggests new ways to visualize feature interference.
+
+\paragraph{For architecture design.} The tradeoff between spatial capacity (width) and temporal capacity (depth/iterations) suggests that narrow-but-deep architectures with iterative refinement may achieve similar expressiveness to wider architectures, while being more amenable to interpretation.
+
+\paragraph{For AI safety.} If reasoning in language models involves superposition of multiple traces, then ``steering'' model behavior \citep{templeton2024scaling} may require understanding which traces are superposed and how to selectively suppress harmful ones without disrupting beneficial reasoning.
