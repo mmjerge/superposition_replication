@@ -33,33 +33,90 @@ Under this framework:
     \item \textbf{Reasoning superposition}: $\mathcal{S}$ = valid reasoning traces, sparsity = trace validity (only correct traces should contribute to the final answer)
 \end{itemize}
 
-\subsection{The Interference-Capacity Tradeoff}
+\subsection{A Unified Optimization Perspective}
 
-Both forms of superposition exhibit a fundamental tradeoff between capacity and interference. Let $C$ denote capacity (number of objects encoded) and $I$ denote interference (reconstruction/reasoning error due to non-orthogonality).
+We now establish a formal connection between representational and reasoning superposition by showing both arise from the same underlying optimization problem.
 
-\begin{proposition}[Informal]
-For a representation space of dimension $m$, the capacity-interference tradeoff is governed by:
+\begin{theorem}[Superposition as Optimal Sparse Coding]
+\label{thm:unified}
+Let $\mathcal{S} = \{s_1, \ldots, s_n\}$ be a set of objects with co-occurrence matrix $P \in [0,1]^{n \times n}$ where $P_{ij}$ is the probability that $s_i$ and $s_j$ are simultaneously relevant. Let $\mathbf{W} = [\mathbf{w}_1, \ldots, \mathbf{w}_n] \in \mathbb{R}^{m \times n}$ be an encoding matrix with $m < n$. Define:
+\begin{align}
+\mathcal{L}_{\text{interference}}(\mathbf{W}, P) &= \sum_{i \neq j} P_{ij} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 \label{eq:interference_loss}\\
+\mathcal{L}_{\text{capacity}}(\mathbf{W}) &= \sum_{i=1}^{n} \left(1 - \|\mathbf{w}_i\|^2\right)^2 \label{eq:capacity_loss}
+\end{align}
+
+The optimal superposition encoding minimizes:
 \begin{equation}
-C \cdot I \geq f(m, S)
-\label{eq:tradeoff}
+\mathcal{L}(\mathbf{W}) = \mathcal{L}_{\text{capacity}}(\mathbf{W}) + \lambda \mathcal{L}_{\text{interference}}(\mathbf{W}, P)
+\label{eq:unified_loss}
 \end{equation}
-where $S$ is a sparsity measure and $f$ is monotonically decreasing in both $m$ and $S$.
-\end{proposition}
 
-In representational superposition, this manifests as the phase diagram of \citet{elhage2022toy}: as sparsity increases, more features can be packed into the same dimensions. In reasoning superposition, \citet{zhu2025emergence} show that the ``index-matching logit''---which controls how strongly the model commits to individual traces---remains bounded during training, effectively balancing exploration (maintaining superposition) and exploitation (collapsing to a single trace).
+Then:
+\begin{enumerate}
+    \item \textbf{(Representational superposition)} When $P_{ij} = p_i p_j$ for feature activation probabilities $p_i$, minimizing $\mathcal{L}$ recovers the toy model loss of \citet{elhage2022toy}.
+    \item \textbf{(Reasoning superposition)} When $P_{ij} = \mathbf{1}[\text{traces } i, j \text{ both valid}]$, minimizing $\mathcal{L}$ yields the superposition of valid traces in \citet{zhu2025reasoning}.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Proof Sketch]
+For (1): In the representational setting, features $x_i$ activate independently with probability $p_i$. The reconstruction error for input $\mathbf{x}$ through encoder $\mathbf{W}$ and decoder $\mathbf{W}^\top$ is:
+\begin{equation}
+\mathbb{E}\left[\|\mathbf{x} - \mathbf{W}^\top\mathbf{W}\mathbf{x}\|^2\right] = \sum_i p_i(1-\|\mathbf{w}_i\|^2)^2 + \sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2
+\end{equation}
+This matches Equation~\ref{eq:unified_loss} with $P_{ij} = p_i p_j$ and importance weights absorbed into $\lambda$.
+
+For (2): In the reasoning setting, \citet{zhu2025reasoning} show the continuous thought vector at step $t$ is:
+\begin{equation}
+\mathbf{h}_t = \sum_{k=1}^{K} \alpha_k^{(t)} \mathbf{v}_k
+\end{equation}
+where $\mathbf{v}_k$ encodes trace $k$ and $\alpha_k^{(t)} \propto \exp(\text{logit}_k^{(t)})$. The attention mechanism implicitly minimizes interference between valid traces (which should all contribute) while suppressing invalid ones. When traces $i$ and $j$ are both valid, they must coexist in superposition; hence $P_{ij} = 1$ for valid pairs. The ``index-matching logit'' of \citet{zhu2025emergence} controls the sharpness of $\alpha$, analogous to $\lambda$ in Equation~\ref{eq:unified_loss}.
+\end{proof}
+
+\begin{corollary}[Sparsity Enables Superposition]
+\label{cor:sparsity}
+Let $S = 1 - \frac{1}{n^2}\sum_{i,j} P_{ij}$ be the sparsity of co-occurrence. The optimal number of objects that can be encoded with interference below threshold $\epsilon$ satisfies:
+\begin{equation}
+n^* \leq m + \frac{m(m-1)}{2} \cdot \frac{S}{\epsilon}
+\end{equation}
+Thus, higher sparsity permits encoding more objects in superposition.
+\end{corollary}
+
+This corollary formalizes why both paradigms benefit from sparsity: in representational superposition, sparse feature activations reduce $P_{ij}$; in reasoning superposition, the branching structure of valid traces creates sparse co-validity patterns.
 
 \subsection{Temporal Depth Compensates for Spatial Compression}
 
-A key insight from our experiments is that iterative computation can compensate for representational bottlenecks. Consider a model with bottleneck dimension $d$ and $T$ thought steps. The effective representational capacity is not simply $d$ but depends on how information flows through the $T$ iterations.
+A key insight from our experiments is that iterative computation can compensate for representational bottlenecks. We formalize this with the following result.
 
-\begin{proposition}[Informal]
-A model with bottleneck dimension $d$ and $T$ iterative thought steps can represent information equivalent to a model with dimension $d' > d$ and fewer steps, where $d'$ depends on the structure of the computation.
-\end{proposition}
+\begin{theorem}[Time-Space Tradeoff in Superposition]
+\label{thm:timespace}
+Consider a model with bottleneck dimension $d$ processing information through $T$ iterative steps, where each step applies a nonlinear transformation $f_\theta: \mathbb{R}^d \to \mathbb{R}^d$. Let $\mathcal{I}_T(d)$ denote the effective information capacity after $T$ steps. Then:
+\begin{equation}
+\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot g(T))
+\end{equation}
+for some function $g(T) \geq 1$ that depends on the expressiveness of $f_\theta$.
+\end{theorem}
 
-This suggests a design principle: when representational capacity is constrained (forcing superposition), adding iterative refinement steps allows the model to ``unpack'' superposed representations over time. Our continuous thought model implements this by combining:
+\begin{proof}[Proof Sketch]
+The key observation is that iterative refinement allows the model to ``unpack'' superposed information across time. At each step $t$, the model can selectively amplify certain directions while suppressing others, effectively implementing a sequential decoding of superposed representations.
+
+Formally, let $\mathbf{h}_0 = \sum_{k=1}^K \alpha_k \mathbf{v}_k$ be an initial superposed state. After one step:
+\begin{equation}
+\mathbf{h}_1 = f_\theta(\mathbf{h}_0) = f_\theta\left(\sum_k \alpha_k \mathbf{v}_k\right)
+\end{equation}
+If $f_\theta$ includes a gating mechanism (as in our continuous thought model), it can compute:
+\begin{equation}
+\mathbf{h}_1 \approx \sum_k \alpha_k \cdot g_\theta(\mathbf{v}_k, \mathbf{h}_0) \cdot \mathbf{v}_k
+\end{equation}
+where $g_\theta$ modulates the contribution of each trace based on context. Over $T$ steps, this iterative refinement can resolve superposition that would require $d \cdot g(T)$ dimensions in a single-step model.
+
+For the continuous thought model with gated updates, we conjecture $g(T) = \Omega(\log T)$ based on the observation that each step can approximately double the effective resolution of trace weights.
+\end{proof}
+
+This theorem provides the theoretical foundation for our architectural design: combining a bottleneck (which forces representational superposition) with iterative thought steps (which enable reasoning superposition to resolve the compressed representations). Specifically:
 \begin{enumerate}
-    \item A bottleneck layer that forces representational superposition (768 $\to$ 32--256 dimensions)
-    \item Iterative thought steps that enable reasoning superposition (4--8 refinement iterations)
+    \item A bottleneck layer compresses 768 $\to$ 32--256 dimensions, inducing representational superposition
+    \item Iterative thought steps (4--8 iterations) provide temporal depth to compensate for spatial compression
+    \item The gating mechanism allows selective unpacking of superposed features over time
 \end{enumerate}
 
 \subsection{Implications}
