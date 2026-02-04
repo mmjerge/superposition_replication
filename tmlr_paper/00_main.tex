@@ -98,13 +98,14 @@
 \maketitle
 
 \begin{abstract}
-Mechanistic interpretability seeks to illuminate the internal workings of trained models by mapping latent computations to human-understandable structures. A key concept in this line of research is superposition, where multiple features are encoded within a compressed representational space. In this paper, we replicate and extend the foundational experiments from \textit{Toy Models of Superposition} (Elhage et al., 2022b). First, we confirm their core findings through independent implementation. Then, we extend the approach to more complex architectures, including GPT-2-style transformers and encoder-decoder translation models. Our results demonstrate that superposition is not merely an artifact of simplified experimental settings but a fundamental property of neural networks that persists across model architectures and scales to practical language models. These findings have important implications for AI safety and alignment, as understanding superposition enables techniques for steering model behavior and avoiding harmful outputs. By providing both reproducible evidence and novel extensions, we offer further insights into when and how superposition emerges under varying architectures and training configurations.
+Mechanistic interpretability seeks to illuminate the internal workings of trained models by mapping latent computations to human-understandable structures. A key concept in this line of research is superposition, where multiple features are encoded within a compressed representational space. In this paper, we replicate and extend the foundational experiments from \textit{Toy Models of Superposition} (Elhage et al., 2022b). First, we confirm their core findings through independent implementation. Then, we extend the approach to more complex architectures, including GPT-2-style transformers and encoder-decoder translation models. We further propose a unified framework connecting \emph{representational superposition}---packing features into limited dimensions---with \emph{reasoning superposition}---maintaining multiple reasoning traces in continuous latent space, as studied in recent work on chain-of-continuous-thought. Our results demonstrate that superposition is not merely an artifact of simplified experimental settings but a fundamental property of neural networks that persists across model architectures and scales to practical language models. These findings have important implications for AI safety and alignment, as understanding superposition enables techniques for steering model behavior and avoiding harmful outputs.
 \end{abstract}
 
 \input{01_introduction}
 \input{02_background}
 \input{03_replication}
-\input{04_experimental_setups}
+\input{04_experiments}
+\input{04b_bridging}
 \input{05_results}
 \input{06_implications}
 \input{07_limitations}

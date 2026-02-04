@@ -37,24 +37,16 @@ where $N$ is batch size. While the original paper presented only the unweighted 
 
 \paragraph{Interpreting Figure~\ref{fig:replication}.} Each panel shows feature embeddings as vectors in 2D space, derived from columns of the learned weight matrix $W$. When superposition occurs, we observe more than $m=2$ features represented as distinct directions, often arranged with approximately equal angular spacing (e.g., pentagon or hexagon patterns for 5--6 features). The top row shows results from the original authors' code; the bottom row shows our independent implementation.
 
-Our replicated results closely match the original findings:
+Our replicated results closely match the original findings. Without ReLU (the linear model), features collapse or align with the two available dimensions---no superposition occurs because interference cannot be managed. In contrast, with ReLU, features arrange themselves in geometric patterns (pentagons, hexagons) that maximize angular separation, representing more features than dimensions. This is superposition in action.
 
-\begin{enumerate}
-    \item \textbf{Without ReLU (linear model):} Features collapse or align with the two available dimensions---no superposition occurs because interference cannot be managed.
-    
-    \item \textbf{With ReLU:} Features arrange themselves in geometric patterns (pentagons, hexagons) that maximize angular separation, representing more features than dimensions. This is superposition in action.
-    
-    \item \textbf{Effect of sparsity:} As sparsity increases (features less frequently active), models represent more features in superposition because interference costs decrease.
-    
-    \item \textbf{Effect of importance:} High-importance features tend to occupy dedicated dimensions, while lower-importance features are more likely to be superposed.
-\end{enumerate}
+We also observe the predicted effects of sparsity and importance. As sparsity increases (features less frequently active), models represent more features in superposition because interference costs decrease. Meanwhile, high-importance features tend to occupy dedicated dimensions, while lower-importance features are more likely to be superposed.
 
 These results confirm the core finding: ReLU-based autoencoders develop superposition as a strategy for representing more features than dimensions, with the degree of superposition governed by feature sparsity and importance.
 
 % Note: Update figure reference and caption
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/replication_figure.pdf}
+    \includegraphics[width=\textwidth]{figures/replication_figure.png}
     \caption{\textbf{Visualization of superposition in toy autoencoder models.} Each panel shows learned feature embeddings as vectors in 2D space ($m=2$ hidden dimensions), with axes representing the two basis directions. When superposition occurs, more than 2 features are represented as distinct directions arranged with approximately equal angular spacing (e.g., 5 features forming a pentagon). \textbf{Top row:} Results from original authors' code. \textbf{Bottom row:} Our independent implementation. Panels progress left-to-right with increasing sparsity, showing more features entering superposition as sparsity increases.}
     \label{fig:replication}
 \end{figure}

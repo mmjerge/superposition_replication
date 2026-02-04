@@ -12,24 +12,8 @@ Our findings have several implications for the field:
 
 \subsection{Implications for AI Safety}
 
-Understanding superposition is crucial for AI safety efforts:
-
-\begin{enumerate}
-    \item \textbf{Feature identification:} Superposition complicates the identification of individual features. Techniques like sparse autoencoders \citep{bricken2023monosemanticity} aim to disentangle superposed representations.
-    
-    \item \textbf{Model steering:} \citet{templeton2024scaling} showed that identified features can be used to steer model behavior. Our results suggest this approach should generalize across architectures.
-    
-    \item \textbf{Failure mode analysis:} Superposition may contribute to unexpected model behaviors when rarely-co-occurring features interfere. Understanding superposition patterns could help predict such failures.
-\end{enumerate}
+Understanding superposition is crucial for AI safety efforts. First, superposition complicates the identification of individual features; techniques like sparse autoencoders \citep{bricken2023monosemanticity} aim to disentangle superposed representations. Second, \citet{templeton2024scaling} showed that identified features can be used to steer model behavior, and our results suggest this approach should generalize across architectures. Third, superposition may contribute to unexpected model behaviors when rarely-co-occurring features interfere; understanding superposition patterns could help predict such failures.
 
 \subsection{Implications for Architecture Design}
 
-Our results suggest opportunities for architecture design:
-
-\begin{enumerate}
-    \item \textbf{Designing for interpretability:} Architectures that reduce superposition (e.g., wider layers, SoLU activations) may be more interpretable, though potentially at efficiency cost.
-    
-    \item \textbf{Deliberate bottlenecks:} The success of our translation bottleneck suggests controlled capacity constraints could induce efficient, structured representations---potentially useful for model compression.
-    
-    \item \textbf{Privileged vs.\ non-privileged bases:} The distinction between representations with and without natural basis alignment \citep{hubinger2023privileged} affects how superposition manifests and should inform interpretation strategies.
-\end{enumerate}
+Our results suggest several opportunities for architecture design. Architectures that reduce superposition (e.g., wider layers, SoLU activations) may be more interpretable, though potentially at efficiency cost. The success of our translation bottleneck suggests that controlled capacity constraints could induce efficient, structured representations---potentially useful for model compression. Finally, the distinction between representations with and without natural basis alignment \citep{hubinger2023privileged} affects how superposition manifests and should inform interpretation strategies.

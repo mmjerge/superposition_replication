@@ -6,13 +6,7 @@ The GPT-2-style transformer exhibits clear superposition patterns when processin
 
 \paragraph{Feature geometry (Figure~\ref{fig:transformer_features}).} We visualize feature embeddings from the input projection layer across multiple random instances. Despite different input patterns, features consistently arrange themselves with approximately uniform angular spacing---the same geometric organization observed in toy autoencoders. This suggests the transformer has learned to minimize interference by distributing features evenly in the representational space.
 
-\paragraph{Effect of sparsity (Figure~\ref{fig:feature_analysis}).} The upper panels show feature norms (bar height) and polysemanticity (color intensity, green=low, yellow=high) for models trained with different sparsity levels:
-
-\begin{itemize}
-    \item \textbf{Sparsity 0.070 (features frequently active):} The first $\sim$64 features (up to the hidden dimension, marked by dashed line) have high norms and low polysemanticity---they occupy dedicated dimensions. Features beyond this boundary have lower norms and higher polysemanticity, indicating superposition.
-    
-    \item \textbf{Sparsity 0.684 (features rarely active):} More features participate in superposition, with polysemanticity spread more evenly across features. The model exploits sparsity to represent more features.
-\end{itemize}
+\paragraph{Effect of sparsity (Figure~\ref{fig:feature_analysis}).} The upper panels show feature norms (bar height) and polysemanticity (color intensity, green=low, yellow=high) for models trained with different sparsity levels. At low sparsity (0.070, features frequently active), the first $\sim$64 features (up to the hidden dimension, marked by dashed line) have high norms and low polysemanticity---they occupy dedicated dimensions. Features beyond this boundary have lower norms and higher polysemanticity, indicating superposition. At high sparsity (0.684, features rarely active), more features participate in superposition, with polysemanticity spread more evenly across features. The model exploits sparsity to represent more features.
 
 The lower panels show weight correlation matrices ($W^T W$), revealing feature interactions. Higher sparsity produces denser correlation patterns, indicating more feature sharing.
 
@@ -21,7 +15,7 @@ The lower panels show weight correlation matrices ($W^T W$), revealing feature i
 % Figure for transformer features
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/transformer_features.pdf}
+    \includegraphics[width=\textwidth]{figures/transformer_features.png}
     \caption{\textbf{Feature embeddings from the GPT-2-style transformer.} Each panel shows feature organization for a different input instance. Despite varying inputs, features maintain consistent geometric arrangements with approximately uniform angular spacing, demonstrating stable superposition patterns across the transformer architecture.}
     \label{fig:transformer_features}
 \end{figure}
@@ -29,7 +23,7 @@ The lower panels show weight correlation matrices ($W^T W$), revealing feature i
 % Figure for feature analysis
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/feature_analysis.pdf}
+    \includegraphics[width=\textwidth]{figures/interference_heatmap.png}
     \caption{\textbf{Feature analysis across superposition models.} \textbf{Top two panels (Sparsity 0.070):} Low sparsity setting. Upper: Feature norms (bar height) and polysemanticity (color: green=low, yellow=high). The dashed vertical line marks the hidden dimension ($d=64$); features to the right must be superposed. Lower: Weight correlation matrix ($W^T W$) showing feature interactions. \textbf{Bottom two panels (Sparsity 0.684):} High sparsity setting shows more widespread superposition and denser correlations.}
     \label{fig:feature_analysis}
 \end{figure*}
@@ -37,7 +31,7 @@ The lower panels show weight correlation matrices ($W^T W$), revealing feature i
 % Figure for geometric analysis
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/geometric_analysis.pdf}
+    \includegraphics[width=\textwidth]{figures/phase_diagram.png}
     \caption{\textbf{Geometric analysis of feature dimensionality.} Y-axis: fraction of a dimension occupied by each feature. X-axis: inverse sparsity ($1/S$). Horizontal reference lines indicate theoretically significant fractions ($1/2$, $2/3$, $3/4$, etc.) predicted by optimal packing theory. Points cluster around these fractions, with clustering becoming more pronounced at higher inverse sparsity (more superposition). Points colored by instance; horizontal jitter added for visibility.}
     \label{fig:geometric_analysis}
 \end{figure}
@@ -55,7 +49,7 @@ The bottleneck translation model demonstrates that superposition enables practic
 % Figure for translation embeddings
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/translation_embeddings.pdf}
+    \includegraphics[width=0.8\textwidth]{images/translation_embeddings.png}
     \caption{\textbf{Embedding space of translation model bottleneck layer.} 3D PCA projection of the 16-dimensional bottleneck representations. Each point represents a token; labeled points show frequent French and English words. Semantic clustering is visible: function words (articles, prepositions) cluster separately from content words, suggesting structured encoding despite severe dimensional constraint (512$\rightarrow$16 dimensions).}
     \label{fig:translation_embeddings}
 \end{figure}
