@@ -1,0 +1,52 @@
+\section{Extension to Transformer Architectures}
+
+Having replicated the original findings, we now ask: \emph{Does superposition emerge in more complex, practical architectures?} We examine two settings: (1) a GPT-2-style transformer processing synthetic sparse features, and (2) a translation model with a constrained bottleneck layer.
+
+\subsection{Superposition in a GPT-2-Style Transformer}
+
+\paragraph{Motivation.} The original superposition results used simple autoencoders. If superposition is fundamental to how neural networks manage limited capacity, it should also appear in transformers. We test this by adapting a GPT-2-style architecture to process the same synthetic sparse features.
+
+\paragraph{Architecture.} We use a transformer with the following configuration:
+\begin{itemize}
+    \item Hidden dimension: 64
+    \item Number of layers: 4
+    \item Attention heads: 4
+    \item Positions: 32
+    \item Input features: 128 (exceeding hidden dimension to encourage superposition)
+\end{itemize}
+
+The model processes synthetic feature vectors $x \in \mathbb{R}^{128}$ generated with the same sparsity and importance distributions as the replication study. An input projection maps features to the hidden space, transformer layers process these representations, and an output projection with ReLU reconstructs the original features:
+\begin{equation}
+X' = \text{ReLU}\left(T(X W_{\text{in}}^T) W_{\text{out}}^T\right)
+\end{equation}
+where $T(\cdot)$ denotes the transformer layers. We train using the same importance-weighted MSE loss (Equation~\ref{eq:loss}).
+
+\subsection{Superposition in a Translation Model}
+
+\paragraph{Motivation.} Synthetic features allow controlled experiments, but do real linguistic features exhibit superposition? We investigate this using a translation model with an artificial bottleneck that constrains representational capacity.
+
+\paragraph{Architecture.} We modify a pre-trained MarianMT model (Helsinki-NLP/opus-mt-en-fr) by inserting a bottleneck between encoder and decoder:
+
+\begin{enumerate}
+    \item \textbf{Encoder output:} $H_{\text{enc}} \in \mathbb{R}^{T \times d_{\text{model}}}$ where $T$ is sequence length and $d_{\text{model}} = 512$
+    
+    \item \textbf{Bottleneck projection:} 
+    \begin{equation}
+    H_{\text{bottleneck}} = H_{\text{enc}} W_{\text{bottleneck}}^T \in \mathbb{R}^{T \times 16}
+    \end{equation}
+    
+    \item \textbf{Expansion:} 
+    \begin{equation}
+    H_{\text{exp}} = H_{\text{bottleneck}} W_{\text{expansion}}^T \in \mathbb{R}^{T \times d_{\text{model}}}
+    \end{equation}
+\end{enumerate}
+
+The bottleneck reduces 512 dimensions to just 16, creating strong pressure for superposition. Only the bottleneck layers are trained; MarianMT parameters remain frozen.
+
+\paragraph{Training.} We fine-tune on 500 samples from the IWSLT2017 English-French dataset \citep{cettolo2017overview} using standard cross-entropy loss:
+\begin{equation}
+L = -\sum_{t=1}^{T'} \log P(Y_{\text{true},t} \mid S)
+\end{equation}
+where $P(Y_{\text{true},t} \mid S)$ is the probability assigned by the model to the correct token at step $t$.
+
+\paragraph{Why this matters.} If the model maintains translation quality despite the severe bottleneck, it suggests superposition allows efficient encoding of linguistic features---the same phenomenon observed in toy models, now in a practical NLP setting.

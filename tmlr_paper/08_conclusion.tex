@@ -1,0 +1,15 @@
+\section{Conclusion}
+
+This paper has extended the study of superposition in neural networks by replicating foundational results and demonstrating that superposition persists in practical architectures. Our key findings are:
+
+\begin{enumerate}
+    \item \textbf{Validated replication:} Independent implementation confirms the core results of \citet{elhage2022toy}---superposition emerges in autoencoders when features are sparse and dimensions are constrained.
+    
+    \item \textbf{Transformer generalization:} GPT-2-style transformers exhibit the same superposition patterns, including geometric feature organization and sparsity-dependent polysemanticity.
+    
+    \item \textbf{Practical relevance:} A translation model maintains performance despite 32$\times$ dimensional compression, demonstrating that superposition enables efficient encoding of real linguistic features.
+\end{enumerate}
+
+These findings support the broader claim that superposition is a fundamental property of neural networks, not an artifact of toy settings. This has important implications for mechanistic interpretability: techniques developed on simple models should transfer to practical architectures, but the challenge of disentangling superposed features remains significant.
+
+While superposition provides valuable theoretical and practical insights, it may not always be the most effective framework for interpreting neural networks. Complementary approaches such as causal intervention and counterfactual analysis may provide clearer views of model behavior, particularly when feature overlap obscures traditional interpretability methods. Future research should develop hybrid approaches combining superposition analysis with other interpretability techniques.

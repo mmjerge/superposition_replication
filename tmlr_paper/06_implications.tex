@@ -1,0 +1,35 @@
+\section{Discussion}
+
+\subsection{Implications for Mechanistic Interpretability}
+
+Our findings have several implications for the field:
+
+\paragraph{Superposition is fundamental, not artifactual.} The persistence of superposition across toy autoencoders, transformers, and translation models suggests it is a general strategy neural networks employ to manage limited capacity, not an artifact of simplified experimental settings.
+
+\paragraph{Sparsity drives superposition.} In all architectures, increased sparsity leads to more superposition. This aligns with the theoretical prediction that interference costs decrease when features are rarely co-active.
+
+\paragraph{Practical models use superposition.} The translation model's ability to maintain performance through a 32$\times$ compression (512$\rightarrow$16 dimensions) demonstrates that superposition enables efficient encoding of real linguistic features, not just synthetic ones.
+
+\subsection{Implications for AI Safety}
+
+Understanding superposition is crucial for AI safety efforts:
+
+\begin{enumerate}
+    \item \textbf{Feature identification:} Superposition complicates the identification of individual features. Techniques like sparse autoencoders \citep{bricken2023monosemanticity} aim to disentangle superposed representations.
+    
+    \item \textbf{Model steering:} \citet{templeton2024scaling} showed that identified features can be used to steer model behavior. Our results suggest this approach should generalize across architectures.
+    
+    \item \textbf{Failure mode analysis:} Superposition may contribute to unexpected model behaviors when rarely-co-occurring features interfere. Understanding superposition patterns could help predict such failures.
+\end{enumerate}
+
+\subsection{Implications for Architecture Design}
+
+Our results suggest opportunities for architecture design:
+
+\begin{enumerate}
+    \item \textbf{Designing for interpretability:} Architectures that reduce superposition (e.g., wider layers, SoLU activations) may be more interpretable, though potentially at efficiency cost.
+    
+    \item \textbf{Deliberate bottlenecks:} The success of our translation bottleneck suggests controlled capacity constraints could induce efficient, structured representations---potentially useful for model compression.
+    
+    \item \textbf{Privileged vs.\ non-privileged bases:} The distinction between representations with and without natural basis alignment \citep{hubinger2023privileged} affects how superposition manifests and should inform interpretation strategies.
+\end{enumerate}

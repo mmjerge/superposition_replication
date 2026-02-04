@@ -1,0 +1,131 @@
+
+\documentclass[10pt]{article} % For LaTeX2e
+\usepackage{tmlr}
+% If accepted, instead use the following line for the camera-ready submission:
+%\usepackage[accepted]{tmlr}
+% To de-anonymize and remove mentions to TMLR (for example for posting to preprint servers), instead use the following:
+%\usepackage[preprint]{tmlr}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs} % for professional tables
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% For theorems and such
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Todonotes is useful during development; simply uncomment the next line
+%    and comment out the line below the next line to turn off comments
+%\usepackage[disable,textsize=tiny]{todonotes}
+\usepackage[textsize=tiny]{todonotes}
+
+\newcommand{\dnote}[1]{\textcolor{orange}{\emph{Dave:} #1}}
+\newcommand{\mnote}[1]{\textcolor{blue}{\emph{Mike: #1}}}
+\newcommand{\anote}[1]{\textcolor{purple}{\emph{Anshuman}: #1}}
+
+\newcommand{\shortgap}{\vspace{6pt}}
+\newcommand\shortsection[1]{\vspace{6pt}{\noindent\bf #1.}}
+\newcommand\shortersection[1]{\vspace{6pt}{\noindent\em #1.}}
+\newcommand\shortsectionnp[1]{\vspace{6pt}{\noindent\bf #1}}
+\newcommand\shortersectionnp[1]{\vspace{6pt}{\noindent\em #1}}
+
+\renewcommand{\sectionautorefname}{Section}
+\renewcommand{\subsectionautorefname}{Section}
+
+
+\title{Revisiting \emph{Toy Models of Superposition}}
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the tmlr package is used without the [accepted] or [preprint] options.
+% Non-anonymous submissions will be rejected without review.
+
+\author{\name Michael Jerge \email mj6ux@virginia.edu \\
+      \addr Department of Computer Science\\
+      University of Virginia
+      \AND
+      \name Anshuman Suri \email  \\
+      \addr Department of Computer Science\\
+      Northeastern University
+      \AND
+      \name David Evans \email evans@virginia.edu\\
+      \addr Department of Computer Science \\
+      University of Virginia}
+
+% The \author macro works with any number of authors. Use \AND 
+% to separate the names and addresses of multiple authors.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\def\month{MM}  % Insert correct month for camera-ready version
+\def\year{YYYY} % Insert correct year for camera-ready version
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}} % Insert correct link to OpenReview for camera-ready version
+
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+Mechanistic interpretability seeks to illuminate the internal workings of trained models by mapping latent computations to human-understandable structures. A key concept in this line of research is superposition, where multiple features are encoded within a compressed representational space. In this paper, we replicate and extend the foundational experiments from \textit{Toy Models of Superposition} (Elhage et al., 2022b). First, we confirm their core findings through independent implementation. Then, we extend the approach to more complex architectures, including GPT-2-style transformers and encoder-decoder translation models. Our results demonstrate that superposition is not merely an artifact of simplified experimental settings but a fundamental property of neural networks that persists across model architectures and scales to practical language models. These findings have important implications for AI safety and alignment, as understanding superposition enables techniques for steering model behavior and avoiding harmful outputs. By providing both reproducible evidence and novel extensions, we offer further insights into when and how superposition emerges under varying architectures and training configurations.
+\end{abstract}
+
+\input{01_introduction}
+\input{02_background}
+\input{03_replication}
+\input{04_experimental_setups}
+\input{05_results}
+\input{06_implications}
+\input{07_limitations}
+\input{08_conclusion}
+
+\subsubsection*{Broader Impact Statement}
+% In this optional section, TMLR encourages authors to discuss possible repercussions of their work,
+% notably any potential negative impact that a user of this research should be aware of. 
+% Authors should consult the TMLR Ethics Guidelines available on the TMLR website
+% for guidance on how to approach this subject.
+
+% Will come in preprint/camera-ready version
+% \subsubsection*{Author Contributions}
+
+% \subsubsection*{Acknowledgments}
+
+\bibliography{references}
+\bibliographystyle{tmlr}
+
+\appendix
+\section{Appendix}
+% You may include other additional sections here.
+
+\end{document}

@@ -1,0 +1,15 @@
+\section{Limitations}
+
+We acknowledge several limitations of this work:
+
+\begin{enumerate}
+    \item \textbf{Scale of experiments:} Our transformer experiments use GPT-2-scale models (millions of parameters). Testing on larger models (e.g., Llama 3.2, Gemma 2) would strengthen claims about generalization but requires substantially more compute.
+    
+    \item \textbf{Synthetic features:} While our translation experiments use natural language, the transformer experiments rely on synthetic sparse features. The mapping between synthetic and natural features remains an open question.
+    
+    \item \textbf{Artificial bottleneck:} The translation model's bottleneck is not found in standard translation architectures. While it demonstrates superposition under constraint, it does not prove that standard models use the same strategies.
+    
+    \item \textbf{Visualization limitations:} Our 2D and 3D visualizations necessarily project high-dimensional phenomena, potentially obscuring important structure.
+    
+    \item \textbf{Incomplete replication:} Due to resource constraints, we did not replicate all findings from the original paper, particularly the geometry and learning dynamics results that the original authors flagged as ``more uncertain'' in their generalization.
+\end{enumerate}

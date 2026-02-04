@@ -1,0 +1,19 @@
+\section{Introduction}
+
+Deep neural networks have achieved remarkable performance across diverse tasks, from image classification to natural language processing. However, these systems remain largely ``black boxes,'' making it difficult to understand how their outputs are derived. This lack of interpretability becomes particularly problematic when models produce unexpected or harmful behaviors, such as hallucinations or biased outputs.
+
+Mechanistic interpretability has emerged as a promising approach to address this challenge. Originally developed for analyzing convolutional neural networks and image classifiers \citep{olah2017feature, cammarata2020thread}, the field aims to reverse-engineer models into human-understandable concepts. With the rise of large language models, researchers have increasingly focused on interpreting transformer architectures, though significant challenges remain in understanding these large-scale systems.
+
+A central concept in mechanistic interpretability is \emph{superposition}---the phenomenon where neural networks represent more features than they have dimensions by encoding multiple features in overlapping directions. Understanding superposition is crucial for AI safety: recent work has shown that identifying superposed features enables steering models away from harmful behaviors \citep{templeton2024scaling}. If we cannot disentangle the features a model has learned, we cannot reliably predict or control its behavior.
+
+In this work, we replicate the foundational results from \emph{Toy Models of Superposition} \citep{elhage2022toy} and extend them to more complex architectures. While the original paper included code, our independent reimplementation serves to validate these influential findings, which have accumulated over 3,700 citations and shaped subsequent research in mechanistic interpretability. More importantly, we demonstrate that superposition---initially observed in simple autoencoders---persists in practical architectures including GPT-2-style transformers and encoder-decoder translation models.
+
+\paragraph{Contributions.} Our key contributions are:
+\begin{enumerate}
+    \item \textbf{Replication}: Independent verification of the original superposition results in toy autoencoder models.
+    \item \textbf{Extension to transformers}: Demonstration that superposition emerges in GPT-2-style architectures trained on synthetic sparse features.
+    \item \textbf{Extension to translation}: Evidence of superposition in MarianMT models with constrained bottleneck layers.
+    \item \textbf{Implications}: Analysis of what these findings mean for mechanistic interpretability research and model design.
+\end{enumerate}
+
+All code and results are available at \url{https://github.com/mmjerge/superposition_replication}.

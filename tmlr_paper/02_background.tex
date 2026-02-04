@@ -1,0 +1,23 @@
+\section{Background}
+
+\subsection{Theoretical Foundations}
+
+The study of feature representation in neural networks builds upon theoretical work in compressed sensing \citep{donoho2006compressed} and distributed representations \citep{thorpe1989local}. Compressed sensing demonstrates how sparse signals can be recovered from lower-dimensional projections, while distributed representations show how information can be encoded across multiple units rather than localized to individual neurons.
+
+The notion of features as fundamental units of neural computation has evolved through multiple paradigms. Early work in vision networks identified basic feature detectors \citep{olah2020zoom}, while studies of word embeddings revealed semantic directions enabling arithmetic-like operations on word vectors \citep{mikolov2013linguistic}. Three primary definitions of ``feature'' have been proposed: features as arbitrary functions of input, features as human-interpretable properties, and features as properties that sufficiently large networks dedicate neurons to representing \citep{olah2017feature}. Our work, like \citet{elhage2022toy}, adopts the third definition.
+
+The \emph{linear representation hypothesis} posits that features correspond to directions in activation space. This hypothesis is supported by both the architectural nature of neural networks and empirical observations. Linear representations offer key advantages: they naturally emerge from standard neural computations, enable direct feature access by subsequent layers, and provide statistical efficiency through non-local generalization \citep{bengio2013representation}.
+
+\subsection{Superposition and Polysemanticity}
+
+\emph{Superposition} occurs when a neural network represents more features than it has dimensions by encoding features as non-orthogonal directions in activation space. This allows models to represent $n$ features in $m < n$ dimensions, at the cost of interference between features. \emph{Polysemanticity}---the phenomenon of individual neurons responding to multiple distinct features---is a consequence of superposition.
+
+Early investigations of superposition were motivated by observations of polysemantic neurons in language models \citep{olah2020zoom}. The relationship between sparsity and superposition, noted in work on vision and natural image statistics \citep{olshausen1997sparse}, suggested that feature frequency plays a crucial role: when features are sparse (rarely active), the interference cost of superposition is low, making it advantageous to pack more features into limited dimensions.
+
+\subsection{Related Work in Mechanistic Interpretability}
+
+Mechanistic interpretability originated with the Distill Circuits thread \citep{cammarata2020thread}, which focused on interpreting convolutional neural networks. A framework for analyzing transformers was established by \citet{elhage2021mathematical}, providing mathematical foundations for decomposing transformer components. This enabled subsequent work such as the identification of ``induction heads'' that play a role in in-context learning \citep{olsson2022context}.
+
+The foundational study of superposition \citep{elhage2022toy} demonstrated how toy models exhibit superposition under controlled conditions. This work was extended by \citet{henighan2023superposition}, who investigated relationships between superposition, memorization, and double descent. \citet{hubinger2023privileged} explored privileged bases in transformer residual streams, while \citet{bricken2023monosemanticity} introduced dictionary learning techniques for decomposing language models. Most recently, \citet{templeton2024scaling} demonstrated how these approaches scale to production models like Claude 3 Sonnet, showing that identified features can be used to steer model behavior---a key motivation for understanding superposition.
+
+Architectural innovations such as Softmax Linear Units \citep{elhage2022softmax} aim to make neural networks more interpretable while maintaining performance. Our work builds on this foundation by testing whether superposition findings from toy models generalize to practical architectures.
