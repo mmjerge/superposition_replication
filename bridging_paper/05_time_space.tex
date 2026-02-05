@@ -23,14 +23,21 @@ The \emph{effective capacity} $\mathcal{I}_T(d)$ of model $\mathcal{M}_T(d)$ is 
 
 \subsection{Main Time-Space Result}
 
+\begin{assumption}[Decodability]
+\label{asm:decodability}
+The context $\mathbf{c}$ or current state $\mathbf{h}_t$ contains sufficient information to determine which partition of traces is valid. Formally, there exists a function $b^*: \R^{d_c} \to \{0, 1\}$ such that $b^*(\mathbf{c})$ identifies the partition containing the target trace.
+\end{assumption}
+
+This assumption is necessary for the ``binary search'' analogy to hold---one cannot eliminate half the candidates without knowing which half to keep. In practice, this information is encoded in the problem structure (e.g., in graph reachability, the query node determines which paths are relevant).
+
 \begin{theorem}[Time-Space Tradeoff]
 \label{thm:timespace}
-Suppose $f_\theta$ includes a gating mechanism capable of computing:
+Under Assumption~\ref{asm:decodability}, suppose $f_\theta$ includes a gating mechanism capable of computing:
 \begin{equation}
-f_\theta\left(\sum_k \alpha_k \mathbf{v}_k\right) = \sum_k \alpha_k \cdot g_k(\boldsymbol{\alpha}, \mathbf{V}) \cdot \mathbf{v}_k
+f_\theta\left(\sum_k \alpha_k \mathbf{v}_k\right) = \sum_k \alpha_k \cdot g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) \cdot \mathbf{v}_k
 \label{eq:gating}
 \end{equation}
-where $g_k: \R^K \times \R^{d \times K} \to \R$ are learnable gating functions. Then:
+where $g_k: \R^K \times \R^{d \times K} \times \R^{d_c} \to \R$ are learnable gating functions that depend on context $\mathbf{c}$. Then:
 \begin{equation}
 \mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})
 \end{equation}
@@ -48,12 +55,12 @@ Consider $K = 2^T$ objects encoded in $d \cdot 2^T$ dimensions. Partition them i
 
 The key observation is that the gating mechanism (Equation~\ref{eq:gating}) can implement \emph{conditional computation}:
 \begin{equation}
-g_k(\boldsymbol{\alpha}, \mathbf{V}) = \begin{cases}
-1 & \text{if } k \in G_{b^*} \\
+g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) = \begin{cases}
+1 & \text{if } k \in G_{b^*(\mathbf{c})} \\
 0 & \text{otherwise}
 \end{cases}
 \end{equation}
-where $b^* \in \{0, 1\}$ is determined by the context (e.g., which group is more relevant to the query).
+where $b^*(\mathbf{c}) \in \{0, 1\}$ is the partition selector from Assumption~\ref{asm:decodability}, determined by the context $\mathbf{c}$ (e.g., the query node in graph reachability).
 
 After the first step of $\mathcal{M}_{T+1}(d)$:
 \begin{equation}

@@ -5,12 +5,12 @@ We establish notation and review the two superposition frameworks we aim to unif
 
 \subsection{Notation}
 
-Let $[n] = \{1, \ldots, n\}$ denote the first $n$ positive integers. For vectors $\mathbf{u}, \mathbf{v} \in \R^m$, we write $\langle \mathbf{u}, \mathbf{v} \rangle = \mathbf{u}^\top \mathbf{v}$ for the inner product and $\|\mathbf{u}\| = \sqrt{\langle \mathbf{u}, \mathbf{u} \rangle}$ for the Euclidean norm. For a matrix $\mathbf{W} \in \R^{m \times n}$, we write $\mathbf{w}_i \in \R^m$ for its $i$-th column. The indicator function $\ind[\cdot]$ equals 1 if its argument is true and 0 otherwise.
+Let $[n] = \{1, \ldots, n\}$ denote the first $n$ positive integers. For vectors $\mathbf{u}, \mathbf{v} \in \R^d$, we write $\langle \mathbf{u}, \mathbf{v} \rangle = \mathbf{u}^\top \mathbf{v}$ for the inner product and $\|\mathbf{u}\| = \sqrt{\langle \mathbf{u}, \mathbf{u} \rangle}$ for the Euclidean norm. For a matrix $\mathbf{W} \in \R^{d \times n}$, we write $\mathbf{w}_i \in \R^d$ for its $i$-th column. The indicator function $\ind[\cdot]$ equals 1 if its argument is true and 0 otherwise. Throughout, $d$ denotes the \emph{bottleneck dimension}---the representational capacity constraint that induces superposition.
 
 \subsection{Representational Superposition}
 \label{sec:rep_superposition}
 
-Following \citet{elhage2022toy}, consider an autoencoder with encoder $\mathbf{W} \in \R^{m \times n}$ and tied decoder $\mathbf{W}^\top$, where $m < n$. The model receives sparse binary inputs $\mathbf{x} \in \{0, 1\}^n$ where each component $x_i$ activates independently with probability $p_i$. The reconstruction is:
+Following \citet{elhage2022toy}, consider an autoencoder with encoder $\mathbf{W} \in \R^{d \times n}$ and tied decoder $\mathbf{W}^\top$, where $d < n$. The model receives sparse binary inputs $\mathbf{x} \in \{0, 1\}^n$ where each component $x_i$ activates independently with probability $p_i$. The reconstruction is:
 \begin{equation}
 \hat{\mathbf{x}} = \sigma(\mathbf{W}^\top \mathbf{W} \mathbf{x})
 \end{equation}
@@ -23,7 +23,7 @@ where $\omega_i \geq 0$ are importance weights.
 
 \begin{definition}[Representational Superposition]
 \label{def:rep_super}
-We say features $i$ and $j$ are in \emph{superposition} if their encodings are non-orthogonal: $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$. A model exhibits superposition if it represents $n > m$ features with some pairs in superposition.
+We say features $i$ and $j$ are in \emph{superposition} if their encodings are non-orthogonal: $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$. A model exhibits superposition if it represents $n > d$ features with some pairs in superposition.
 \end{definition}
 
 The key insight of \citet{elhage2022toy} is that sparsity enables superposition: when $p_i$ are small, features rarely co-activate, so interference from non-orthogonality has low expected cost.

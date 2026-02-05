@@ -12,7 +12,7 @@ A \emph{co-occurrence matrix} $P \in [0,1]^{n \times n}$ specifies the probabili
 
 \begin{definition}[Superposition Loss]
 \label{def:super_loss}
-For encoding matrix $\mathbf{W} \in \R^{m \times n}$ and co-occurrence matrix $P$, define:
+For encoding matrix $\mathbf{W} \in \R^{d \times n}$ (where $d$ is the bottleneck dimension) and co-occurrence matrix $P$, define:
 \begin{align}
 \mathcal{L}_{\text{cap}}(\mathbf{W}) &= \sum_{i=1}^{n} p_i \left(1 - \|\mathbf{w}_i\|^2\right)^2 \label{eq:cap_loss}\\
 \mathcal{L}_{\text{int}}(\mathbf{W}, P) &= \sum_{i \neq j} P_{ij} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 \label{eq:int_loss}\\
@@ -71,34 +71,38 @@ where $P_{ij} = p_i p_j$ for $i \neq j$ and $P_{ii} = p_i$.
 
 \begin{lemma}
 \label{lem:reason_expansion}
-For continuous thought with trace embeddings $\mathbf{v}_k$ and attention weights $\alpha_k$, the attention mechanism implicitly minimizes interference between co-valid traces while preserving trace information.
+For continuous thought with trace embeddings $\mathbf{v}_k$ and attention weights $\alpha_k$, minimizing the next-token prediction loss (cross-entropy) implies minimizing the interference loss $\mathcal{L}_{\text{int}}$.
 \end{lemma}
 
 \begin{proof}
-From Equation~\ref{eq:thought_decomp}, the thought vector is $\mathbf{h}_t = \sum_k \alpha_k^{(t)} \mathbf{v}_k$. Consider extracting information about trace $k$ via projection:
+From Equation~\ref{eq:thought_decomp}, the thought vector is $\mathbf{h}_t = \sum_k \alpha_k^{(t)} \mathbf{v}_k$. The model predicts the next token by computing logits $\mathbf{z} = \mathbf{W}_U \mathbf{h}_T$ where $\mathbf{W}_U$ is the unembedding matrix.
+
+\textbf{Step 1: Decomposing the logit.}
+For the correct answer token $y^*$, let $\mathbf{u}_{y^*}$ be its unembedding vector. Suppose trace $k^*$ leads to the correct answer, i.e., $\mathbf{v}_{k^*}$ is aligned with $\mathbf{u}_{y^*}$. The logit for the correct answer is:
 \begin{equation}
-\text{info}_k = \langle \mathbf{h}_t, \mathbf{v}_k \rangle = \alpha_k \|\mathbf{v}_k\|^2 + \sum_{j \neq k} \alpha_j \langle \mathbf{v}_j, \mathbf{v}_k \rangle
+z_{y^*} = \langle \mathbf{u}_{y^*}, \mathbf{h}_T \rangle = \alpha_{k^*} \langle \mathbf{u}_{y^*}, \mathbf{v}_{k^*} \rangle + \underbrace{\sum_{j \neq k^*} \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle}_{\text{interference noise}}
 \end{equation}
 
-For accurate trace recovery, we need:
-\begin{enumerate}
-    \item $\|\mathbf{v}_k\| \approx 1$ (unit norm for consistent scaling)
-    \item $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ when both traces are valid (minimize interference)
-\end{enumerate}
+\textbf{Step 2: Cross-entropy decomposition.}
+The cross-entropy loss is $\mathcal{L}_{\text{CE}} = -\log \text{softmax}(z_{y^*})$. For small interference, Taylor expansion gives:
+\begin{align}
+\mathcal{L}_{\text{CE}} &\approx \mathcal{L}_{\text{ideal}} + \lambda \cdot \text{Var}[\text{interference}] + O(\epsilon^3) \\
+&= \mathcal{L}_{\text{ideal}} + \lambda \sum_{j \neq k^*} \alpha_j^2 \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle^2 + O(\epsilon^3)
+\end{align}
+where $\mathcal{L}_{\text{ideal}}$ is the loss with no interference and $\lambda > 0$ depends on the softmax temperature.
 
-The attention mechanism, trained end-to-end, learns embeddings that minimize the error in downstream tasks. \citet{zhu2025emergence} show that during training, the model learns to balance:
-\begin{itemize}
-    \item \textbf{Exploitation:} Concentrate weight on promising traces ($\alpha_k \to 1$ for best trace)
-    \item \textbf{Exploration:} Maintain superposition when uncertain ($\alpha_k$ spread across valid traces)
-\end{itemize}
-
-This balance is controlled by the ``index-matching logit'' $\ell_k$, where $\alpha_k \propto \exp(\ell_k)$. The implicit loss being minimized is:
+\textbf{Step 3: Connecting to $\mathcal{L}_{\text{int}}$.}
+When traces $j$ and $k^*$ are both valid (both could lead to the answer), their embeddings must be distinguishable to avoid the model confusing them. Averaging over problems where different traces are correct:
 \begin{equation}
-\mathcal{L}_{\text{reason}} = \sum_{k \in V} (1 - \|\mathbf{v}_k\|^2)^2 + \sum_{\substack{i, j \in V \\ i \neq j}} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2
+\E[\mathcal{L}_{\text{CE}}] \approx \E[\mathcal{L}_{\text{ideal}}] + \lambda' \sum_{\substack{i, j \in V \\ i \neq j}} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2 + O(\epsilon^3)
 \end{equation}
-where $V$ is the set of valid traces.
 
-Setting $P_{ij} = \ind[i \in V \land j \in V]$ and $p_k = \ind[k \in V]$, this equals $\mathcal{L}(\mathbf{W}, P)$ with $\mathbf{W} = [\mathbf{v}_1, \ldots, \mathbf{v}_K]$.
+The second term is precisely $\mathcal{L}_{\text{int}}(\mathbf{W}, P)$ with $P_{ij} = \ind[\text{both valid}]$.
+
+\textbf{Step 4: Capacity loss from normalization.}
+For stable training, embeddings must have consistent norms. If $\|\mathbf{v}_k\| \ll 1$, the trace contributes negligibly to $\mathbf{h}_t$; if $\|\mathbf{v}_k\| \gg 1$, gradients become unstable. Layer normalization and weight decay implicitly enforce $\|\mathbf{v}_k\| \approx 1$, contributing the $\mathcal{L}_{\text{cap}}$ term.
+
+Thus, minimizing $\mathcal{L}_{\text{CE}}$ implies minimizing $\mathcal{L}(\mathbf{W}, P) = \mathcal{L}_{\text{cap}} + \mathcal{L}_{\text{int}}$.
 \end{proof}
 
 \subsection{Completing the Proof of Theorem~\ref{thm:equivalence}}
