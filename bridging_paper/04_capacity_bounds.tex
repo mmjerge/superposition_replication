@@ -22,6 +22,23 @@ This measures the fraction of pairs that rarely co-occur. $S = 1$ means no pairs
 \end{itemize}
 \end{example}
 
+\begin{remark}[Global vs.\ Local Sparsity]
+\label{rem:global_local}
+A subtle distinction arises between \emph{global} and \emph{local} sparsity in reasoning:
+\begin{itemize}
+    \item \textbf{Global $P$:} The co-occurrence matrix over \emph{all possible} traces. This is sparse because most trace pairs never both lead to valid solutions.
+    \item \textbf{Local $P^{(t)}$:} The co-occurrence matrix over traces \emph{active at timestep $t$}. During BFS-like exploration, the ``frontier'' of active traces can grow, making $P^{(t)}$ locally dense.
+\end{itemize}
+
+This apparent tension resolves as follows: even when the frontier is large, the \emph{relevant} traces (those contributing to the eventual answer) remain sparse. The model maintains superposition over the full frontier, but the interference that \emph{matters}---between traces that both reach the goal---remains controlled by global sparsity.
+
+Formally, let $F_t$ denote the frontier at step $t$ with $|F_t| = O(b^t)$ for branching factor $b$. The local interference is:
+\begin{equation}
+\mathcal{L}_{\text{int}}^{(t)} = \sum_{i, j \in F_t} P^{(t)}_{ij} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2
+\end{equation}
+Even if $|F_t|$ is large, the capacity bound (Theorem~\ref{thm:capacity}) applies with dimension $d$: superposition succeeds when $|F_t| \leq O(d^2 \cdot S^{(t)} / \epsilon)$. The model handles frontier growth by either (a) having sufficient dimension $d$, or (b) using iterative refinement (Section~\ref{sec:timespace}) to prune the frontier over time.
+\end{remark}
+
 \subsection{Main Capacity Result}
 
 \begin{theorem}[Capacity-Sparsity Bound]

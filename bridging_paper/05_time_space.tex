@@ -112,6 +112,29 @@ Formally, consider the information flow: $\mathbf{h}_0 \to \mathbf{h}_1 \to \cdo
 The exponential time-space tradeoff (Theorem~\ref{thm:timespace}) requires the gating mechanism. This explains why architectures like Transformers (with attention-based gating) and LSTMs (with input/forget gates) can achieve greater effective capacity than feedforward networks of the same width.
 \end{corollary}
 
+\begin{remark}[Instantiation in Transformer Architectures]
+\label{rem:transformer_gating}
+The abstract gating function $g_k(\boldsymbol{\alpha}, \mathbf{V})$ in Equation~\ref{eq:gating} corresponds to concrete operations in modern Transformers:
+
+\paragraph{Attention as trace selection.} Self-attention computes:
+\begin{equation}
+\text{Attn}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+\end{equation}
+When the thought vector $\mathbf{h}_t = \sum_k \alpha_k \mathbf{v}_k$ attends to a query $\mathbf{q}$ encoding ``which trace is most promising?'', the attention weights implement:
+\begin{equation}
+g_k(\boldsymbol{\alpha}, \mathbf{V}) \propto \exp\left(\frac{\mathbf{q}^\top \mathbf{v}_k}{\sqrt{d_k}}\right)
+\end{equation}
+This selectively amplifies traces aligned with the query, implementing the binary selection in our proof.
+
+\paragraph{Gated MLPs (SwiGLU) as refinement.} The SwiGLU activation \citep{shazeer2020glu}:
+\begin{equation}
+\text{SwiGLU}(\mathbf{x}) = (\mathbf{W}_1 \mathbf{x} \odot \sigma(\mathbf{W}_g \mathbf{x})) \mathbf{W}_2
+\end{equation}
+provides element-wise gating via $\sigma(\mathbf{W}_g \mathbf{x})$. When $\mathbf{x}$ represents superposed traces, the gate $\mathbf{W}_g$ can learn to suppress irrelevant traces based on context.
+
+\paragraph{Coconut's iterative mechanism.} In continuous thought \citep{hao2024training}, each ``thought step'' applies a full Transformer block to the thought vector. The combination of attention (for trace selection) and gated MLP (for refinement) jointly implements the gating function required by Theorem~\ref{thm:timespace}. The $T$ thought steps correspond to $T$ iterations of this gated refinement.
+\end{remark}
+
 \subsection{Architectural Implications}
 
 Our results suggest a design principle for models combining representational and reasoning superposition:

@@ -119,3 +119,19 @@ The co-occurrence matrix $P$ captures the \emph{structure} of the superposition 
 \end{itemize}
 The unified framework reveals that both phenomena exploit the same mathematical structure: sparse co-occurrence enables packing more objects into limited dimensions.
 \end{remark}
+
+\begin{remark}[Interference as Noise vs.\ Exploration]
+\label{rem:interference_exploration}
+While the mathematics of superposition is equivalent across settings, the \emph{interpretation} of interference differs:
+
+\paragraph{Representational setting: Interference is pure noise.} In feature encoding, interference $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$ is always undesirable---it causes feature $j$'s activation to corrupt the reconstruction of feature $i$. The goal is to minimize interference subject to capacity constraints.
+
+\paragraph{Reasoning setting: Interference enables exploration.} In reasoning superposition, maintaining multiple traces simultaneously is a \emph{feature}, not a bug. The superposition $\mathbf{h}_t = \sum_k \alpha_k \mathbf{v}_k$ allows parallel exploration of the solution space, analogous to beam search or BFS. \citet{zhu2025reasoning} show this enables solving problems that sequential (DFS-like) reasoning cannot.
+
+\paragraph{Resolution: Eventual collapse.} The key insight is that reasoning superposition must \emph{eventually} collapse to a single answer. The loss function $\mathcal{L}_{\text{int}}$ does not penalize superposition per se---it penalizes \emph{indistinguishability} between co-valid traces. When traces $i$ and $j$ are both valid, we need $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ so that the model can later distinguish them and select the correct one. Thus:
+\begin{itemize}
+    \item \textbf{During exploration:} Multiple traces coexist in superposition, with attention weights $\alpha_k$ distributed across valid options.
+    \item \textbf{At decision time:} The gating mechanism (Section~\ref{sec:timespace}) collapses the superposition, concentrating weight on the correct trace: $\alpha_{k^*} \to 1$.
+\end{itemize}
+Low interference $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ ensures this collapse can be performed accurately---the traces remain distinguishable even while superposed. This parallels quantum computing, where orthogonal states can be maintained in superposition and later measured to yield a definite outcome.
+\end{remark}
