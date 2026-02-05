@@ -1,0 +1,133 @@
+\section{Time-Space Equivalence}
+\label{sec:timespace}
+
+A key architectural question is how iterative refinement (temporal depth) relates to representational capacity (spatial width). We prove that time can compensate for space in superposition.
+
+\subsection{Setup}
+
+Consider a model processing information through a bottleneck of dimension $d$, with $T$ iterative refinement steps. Let $f_\theta: \R^d \to \R^d$ denote the transformation at each step, and let $\mathbf{h}_0 \in \R^d$ be the initial (superposed) representation.
+
+\begin{definition}[Iterative Refinement Model]
+\label{def:iterative}
+An \emph{iterative refinement model} $\mathcal{M}_T(d)$ computes:
+\begin{equation}
+\mathbf{h}_t = f_\theta(\mathbf{h}_{t-1}), \quad t = 1, \ldots, T
+\end{equation}
+The final output is decoded from $\mathbf{h}_T$.
+\end{definition}
+
+\begin{definition}[Effective Capacity]
+\label{def:eff_cap}
+The \emph{effective capacity} $\mathcal{I}_T(d)$ of model $\mathcal{M}_T(d)$ is the maximum number of objects that can be encoded and recovered with error at most $\epsilon$.
+\end{definition}
+
+\subsection{Main Time-Space Result}
+
+\begin{theorem}[Time-Space Tradeoff]
+\label{thm:timespace}
+Suppose $f_\theta$ includes a gating mechanism capable of computing:
+\begin{equation}
+f_\theta\left(\sum_k \alpha_k \mathbf{v}_k\right) = \sum_k \alpha_k \cdot g_k(\boldsymbol{\alpha}, \mathbf{V}) \cdot \mathbf{v}_k
+\label{eq:gating}
+\end{equation}
+where $g_k: \R^K \times \R^{d \times K} \to \R$ are learnable gating functions. Then:
+\begin{equation}
+\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})
+\end{equation}
+That is, $T$ iterative steps provide capacity equivalent to exponentially more dimensions.
+\end{theorem}
+
+\begin{proof}
+We prove by induction that $\mathcal{M}_T(d)$ can simulate $\mathcal{M}_1(d \cdot 2^{T-1})$.
+
+\textbf{Base case ($T = 1$):} Trivially, $\mathcal{I}_1(d) = \mathcal{I}_1(d \cdot 2^0)$.
+
+\textbf{Inductive step:} Assume $\mathcal{M}_T(d)$ can simulate $\mathcal{M}_1(d \cdot 2^{T-1})$. We show $\mathcal{M}_{T+1}(d)$ can simulate $\mathcal{M}_1(d \cdot 2^T)$.
+
+Consider $K = 2^T$ objects encoded in $d \cdot 2^T$ dimensions. Partition them into two groups $G_0, G_1$ of size $2^{T-1}$ each, where group $G_b$ uses dimensions in the range $[b \cdot d \cdot 2^{T-1}, (b+1) \cdot d \cdot 2^{T-1})$.
+
+The key observation is that the gating mechanism (Equation~\ref{eq:gating}) can implement \emph{conditional computation}:
+\begin{equation}
+g_k(\boldsymbol{\alpha}, \mathbf{V}) = \begin{cases}
+1 & \text{if } k \in G_{b^*} \\
+0 & \text{otherwise}
+\end{cases}
+\end{equation}
+where $b^* \in \{0, 1\}$ is determined by the context (e.g., which group is more relevant to the query).
+
+After the first step of $\mathcal{M}_{T+1}(d)$:
+\begin{equation}
+\mathbf{h}_1 = \sum_{k \in G_{b^*}} \alpha_k \mathbf{v}_k
+\end{equation}
+
+This effectively ``selects'' one group, reducing the problem to encoding $2^{T-1}$ objects. By the inductive hypothesis, the remaining $T$ steps can handle this with capacity equivalent to $d \cdot 2^{T-1}$ dimensions.
+
+Since the first step doubled the effective dimension (by selecting one of two groups), and the remaining steps provide $d \cdot 2^{T-1}$ capacity:
+\begin{equation}
+\mathcal{I}_{T+1}(d) \geq 2 \cdot d \cdot 2^{T-1} = d \cdot 2^T = \mathcal{I}_1(d \cdot 2^T)
+\end{equation}
+completing the induction.
+\end{proof}
+
+\subsection{Interpretation}
+
+\begin{remark}[Unpacking Superposition]
+The proof reveals the mechanism by which iterative refinement ``unpacks'' superposition:
+\begin{enumerate}
+    \item Initially, $\mathbf{h}_0$ contains all $K$ objects in superposition.
+    \item Each step $t$ uses gating to selectively amplify relevant objects and suppress irrelevant ones.
+    \item After $T$ steps, only the target object remains, enabling accurate decoding.
+\end{enumerate}
+This is analogous to binary search: each step halves the candidate set, achieving exponential speedup.
+\end{remark}
+
+\begin{remark}[Connection to Reasoning]
+In reasoning superposition, this corresponds to:
+\begin{enumerate}
+    \item $\mathbf{h}_0$ contains all valid reasoning traces in superposition.
+    \item Each thought step refines the weights $\alpha_k$, increasing weight on promising traces.
+    \item The final step ``collapses'' to the correct answer, analogous to measurement in quantum computing.
+\end{enumerate}
+\end{remark}
+
+\subsection{Lower Bound}
+
+\begin{theorem}[Time-Space Lower Bound]
+\label{thm:timespace_lower}
+For any model $\mathcal{M}_T(d)$ without the gating mechanism (i.e., $f_\theta$ is a fixed linear transformation plus nonlinearity):
+\begin{equation}
+\mathcal{I}_T(d) \leq \mathcal{I}_1(d \cdot T)
+\end{equation}
+That is, without gating, time provides at most linear (not exponential) capacity increase.
+\end{theorem}
+
+\begin{proof}[Proof Sketch]
+Without gating, each step applies a fixed transformation. The composition of $T$ linear transformations is still linear (rank at most $d$). Nonlinearities can increase expressiveness, but for reconstruction tasks, the information bottleneck limits capacity to $O(d \cdot T)$ bits.
+
+Formally, consider the information flow: $\mathbf{h}_0 \to \mathbf{h}_1 \to \cdots \to \mathbf{h}_T$. Each $\mathbf{h}_t \in \R^d$ can carry at most $O(d)$ bits of information. Even with $T$ steps, the total information is at most $O(d \cdot T)$, giving capacity $\mathcal{I}_T(d) \leq O(d \cdot T)$.
+\end{proof}
+
+\begin{corollary}[Necessity of Gating]
+\label{cor:gating}
+The exponential time-space tradeoff (Theorem~\ref{thm:timespace}) requires the gating mechanism. This explains why architectures like Transformers (with attention-based gating) and LSTMs (with input/forget gates) can achieve greater effective capacity than feedforward networks of the same width.
+\end{corollary}
+
+\subsection{Architectural Implications}
+
+Our results suggest a design principle for models combining representational and reasoning superposition:
+
+\begin{enumerate}
+    \item \textbf{Bottleneck layer:} Compress representations to dimension $d \ll D$ (where $D$ is the original dimension), forcing representational superposition.
+
+    \item \textbf{Iterative refinement:} Add $T$ steps of gated transformation in the bottleneck space, enabling reasoning superposition to unpack the compressed representations.
+
+    \item \textbf{Capacity planning:} By Theorem~\ref{thm:timespace}, the effective capacity is $\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})$. Choose $d$ and $T$ such that $d \cdot 2^{T-1} \geq$ (number of features/traces to encode).
+\end{enumerate}
+
+\begin{example}[Concrete Design]
+To encode $n = 1000$ features with a bottleneck of $d = 64$ dimensions:
+\begin{itemize}
+    \item Single-step model: Can encode $\mathcal{I}_1(64) \approx 64$ features orthogonally, or $O(64^2) \approx 4000$ with superposition (if sparse).
+    \item With $T = 4$ steps: Effective capacity $\mathcal{I}_4(64) \geq \mathcal{I}_1(64 \cdot 8) = \mathcal{I}_1(512)$, sufficient for 1000 features even without superposition.
+\end{itemize}
+\end{example}

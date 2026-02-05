@@ -1,0 +1,71 @@
+\section{Preliminaries}
+\label{sec:prelim}
+
+We establish notation and review the two superposition frameworks we aim to unify.
+
+\subsection{Notation}
+
+Let $[n] = \{1, \ldots, n\}$ denote the first $n$ positive integers. For vectors $\mathbf{u}, \mathbf{v} \in \R^m$, we write $\langle \mathbf{u}, \mathbf{v} \rangle = \mathbf{u}^\top \mathbf{v}$ for the inner product and $\|\mathbf{u}\| = \sqrt{\langle \mathbf{u}, \mathbf{u} \rangle}$ for the Euclidean norm. For a matrix $\mathbf{W} \in \R^{m \times n}$, we write $\mathbf{w}_i \in \R^m$ for its $i$-th column. The indicator function $\ind[\cdot]$ equals 1 if its argument is true and 0 otherwise.
+
+\subsection{Representational Superposition}
+\label{sec:rep_superposition}
+
+Following \citet{elhage2022toy}, consider an autoencoder with encoder $\mathbf{W} \in \R^{m \times n}$ and tied decoder $\mathbf{W}^\top$, where $m < n$. The model receives sparse binary inputs $\mathbf{x} \in \{0, 1\}^n$ where each component $x_i$ activates independently with probability $p_i$. The reconstruction is:
+\begin{equation}
+\hat{\mathbf{x}} = \sigma(\mathbf{W}^\top \mathbf{W} \mathbf{x})
+\end{equation}
+where $\sigma$ is a nonlinearity (typically ReLU). The model is trained to minimize importance-weighted reconstruction error:
+\begin{equation}
+\mathcal{L}_{\text{rep}} = \E\left[\sum_{i=1}^n \omega_i (x_i - \hat{x}_i)^2\right]
+\label{eq:rep_loss}
+\end{equation}
+where $\omega_i \geq 0$ are importance weights.
+
+\begin{definition}[Representational Superposition]
+\label{def:rep_super}
+We say features $i$ and $j$ are in \emph{superposition} if their encodings are non-orthogonal: $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$. A model exhibits superposition if it represents $n > m$ features with some pairs in superposition.
+\end{definition}
+
+The key insight of \citet{elhage2022toy} is that sparsity enables superposition: when $p_i$ are small, features rarely co-activate, so interference from non-orthogonality has low expected cost.
+
+\subsection{Reasoning Superposition}
+\label{sec:reason_superposition}
+
+Following \citet{hao2024training} and \citet{zhu2025reasoning}, consider a transformer with continuous thought. Instead of generating discrete tokens, the model maintains a latent thought vector $\mathbf{h}_t \in \R^d$ that evolves over $T$ steps:
+\begin{equation}
+\mathbf{h}_{t+1} = f_\theta(\mathbf{h}_t, \mathbf{c})
+\end{equation}
+where $\mathbf{c}$ is the context and $f_\theta$ is a learned transformation (typically attention followed by an MLP).
+
+For graph reachability problems, \citet{zhu2025reasoning} proved that the thought vector can be decomposed as:
+\begin{equation}
+\mathbf{h}_t = \sum_{k=1}^K \alpha_k^{(t)} \mathbf{v}_k
+\label{eq:thought_decomp}
+\end{equation}
+where $\mathbf{v}_k \in \R^d$ encodes the $k$-th valid partial path and $\alpha_k^{(t)} = \text{softmax}(\text{logit}_k^{(t)})$ are attention-derived weights.
+
+\begin{definition}[Reasoning Superposition]
+\label{def:reason_super}
+We say reasoning traces $i$ and $j$ are in \emph{superposition} if both contribute to the thought vector with non-zero weight: $\alpha_i^{(t)} > 0$ and $\alpha_j^{(t)} > 0$. A model exhibits reasoning superposition if it maintains $K > 1$ traces in superposition during inference.
+\end{definition}
+
+The key insight of \citet{zhu2025reasoning} is that reasoning superposition enables implicit breadth-first search: instead of committing to a single path (depth-first), the model explores multiple paths simultaneously.
+
+\subsection{Apparent Differences}
+
+At first glance, these phenomena seem distinct:
+
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+& \textbf{Representational} & \textbf{Reasoning} \\
+\midrule
+Objects & Input features & Reasoning traces \\
+Encoding & Weight vectors $\mathbf{w}_i$ & Trace embeddings $\mathbf{v}_k$ \\
+Combination & Sparse binary $\mathbf{x}$ & Soft weights $\alpha_k$ \\
+Sparsity source & Feature activation & Trace validity \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+We will show these differences are superficial: both phenomena arise from the same mathematical structure.

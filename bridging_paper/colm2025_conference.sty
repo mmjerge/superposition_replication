@@ -1,0 +1,124 @@
+% COLM 2025 Conference Style File
+% Based on the official COLM template structure
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{colm2025_conference}[2025/01/01 COLM 2025 Conference Style]
+
+% Options
+\newif\if@submission\@submissiontrue
+\newif\if@final\@finalfalse
+\newif\if@preprint\@preprintfalse
+
+\DeclareOption{submission}{\@submissiontrue\@finalfalse}
+\DeclareOption{final}{\@finaltrue\@submissionfalse}
+\DeclareOption{preprint}{\@preprinttrue\@submissionfalse}
+
+\ProcessOptions\relax
+
+% Required packages
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{amsthm}
+\RequirePackage{graphicx}
+\RequirePackage{hyperref}
+\RequirePackage{url}
+\RequirePackage{booktabs}
+\RequirePackage{microtype}
+\RequirePackage{xcolor}
+\RequirePackage{algorithm}
+\RequirePackage{algorithmic}
+
+% Line numbers for submission
+\if@submission
+  \RequirePackage{lineno}
+  \linenumbers
+\fi
+
+% Page layout
+\RequirePackage[margin=1in]{geometry}
+
+% Font settings
+\RequirePackage{times}
+
+% Theorem environments
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% Title formatting
+\def\@maketitle{%
+  \newpage
+  \null
+  \vskip 2em%
+  \begin{center}%
+    \let \footnote \thanks
+    {\LARGE \@title \par}%
+    \vskip 1.5em%
+    \if@submission
+      {\large Anonymous submission to COLM 2025}
+    \else
+      {\large
+        \lineskip .5em%
+        \begin{tabular}[t]{c}%
+          \@author
+        \end{tabular}\par}%
+    \fi
+    \vskip 1em%
+  \end{center}%
+  \par
+  \vskip 1.5em}
+
+% Abstract formatting
+\renewenvironment{abstract}{%
+  \centerline{\large\bfseries Abstract}
+  \vspace{0.5ex}
+  \begin{quote}
+}{%
+  \end{quote}
+}
+
+% Section formatting
+\renewcommand{\section}{\@startsection{section}{1}{\z@}%
+  {-3.5ex \@plus -1ex \@minus -.2ex}%
+  {2.3ex \@plus.2ex}%
+  {\normalfont\Large\bfseries}}
+
+\renewcommand{\subsection}{\@startsection{subsection}{2}{\z@}%
+  {-3.25ex\@plus -1ex \@minus -.2ex}%
+  {1.5ex \@plus .2ex}%
+  {\normalfont\large\bfseries}}
+
+% Hyperref settings
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+% Conference name command
+\newcommand{\colmyear}{2025}
+\newcommand{\colmconf}{Conference on Language Modeling (COLM)}
+
+% Acknowledgments (hidden in submission)
+\newenvironment{acknowledgments}{%
+  \if@submission
+    \comment
+  \else
+    \section*{Acknowledgments}
+  \fi
+}{%
+  \if@submission
+    \endcomment
+  \fi
+}
+
+\endinput

@@ -1,0 +1,47 @@
+\documentclass[10pt]{article}
+
+% COLM 2025 Conference Style
+% Options: submission (default, with line numbers), final, preprint
+\usepackage[submission]{colm2025_conference}
+
+% Additional math commands
+\input{math_commands.tex}
+
+\usepackage{subfigure}
+\usepackage{mathtools}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Custom commands
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\ind}{\mathbf{1}}
+
+\title{On the Equivalence of Representational and Reasoning Superposition}
+
+% Authors hidden during submission - will be revealed in camera-ready
+\author{
+  Anonymous Authors
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Recent work in mechanistic interpretability has identified \emph{superposition} as a fundamental phenomenon in neural networks, where models encode more features than they have dimensions. Independently, research on chain-of-continuous-thought has revealed that language models can maintain multiple reasoning traces simultaneously in latent space---a form of \emph{reasoning superposition}. We prove that these two phenomena are mathematically equivalent, arising from the same underlying optimization problem parameterized by different co-occurrence structures. Specifically, we show that both representational superposition (packing features into limited dimensions) and reasoning superposition (maintaining multiple valid reasoning traces) minimize a unified loss function that trades off capacity against interference, weighted by co-occurrence probability. We establish formal bounds on how sparsity enables superposition in both settings and prove that temporal depth (iterative refinement) can compensate for spatial compression (bottleneck dimensions), providing theoretical foundations for architectures that combine both mechanisms.
+\end{abstract}
+
+\input{01_introduction}
+\input{02_preliminaries}
+\input{03_equivalence}
+\input{04_capacity_bounds}
+\input{05_time_space}
+\input{06_discussion}
+
+\bibliography{references}
+\bibliographystyle{plain}
+
+\appendix
+\input{appendix}
+
+\end{document}
