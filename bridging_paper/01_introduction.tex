@@ -1,0 +1,22 @@
+\section{Introduction}
+\label{sec:intro}
+
+Understanding how neural networks represent and process information is a central challenge in machine learning. Two recent lines of research have independently identified \emph{superposition} as a key phenomenon, but in seemingly different contexts.
+
+\paragraph{Representational superposition.} \citet{elhage2022toy} demonstrated that neural networks can represent more features than they have dimensions by encoding features as non-orthogonal directions. When features are sparse (rarely co-activate), the interference cost of sharing directions is low, enabling efficient compression. This phenomenon has profound implications for mechanistic interpretability: if features are superposed, they cannot be read off individual neurons, complicating efforts to understand model behavior \citep{bricken2023monosemanticity, templeton2024scaling}.
+
+\paragraph{Reasoning superposition.} \citet{hao2024training} introduced chain-of-continuous-thought (Coconut), where language models reason in continuous latent space rather than through discrete tokens. \citet{zhu2025reasoning} proved that such models can maintain multiple reasoning traces simultaneously---a ``superposition of search paths''---enabling implicit parallel exploration. This was formalized as reasoning superposition, where the latent thought vector encodes a weighted combination of valid partial solutions.
+
+\paragraph{The question.} Despite superficial differences, both phenomena involve packing more information into limited representational capacity. Are they fundamentally the same? Or are there deep structural differences that make them distinct phenomena requiring separate analysis?
+
+\paragraph{Our contribution.} We prove that representational and reasoning superposition are \emph{mathematically equivalent}---both arise from minimizing the same loss function, differing only in the co-occurrence structure of the objects being encoded. Specifically:
+
+\begin{enumerate}
+    \item We establish a \textbf{unified loss function} (Theorem~\ref{thm:equivalence}) that captures both phenomena, with the co-occurrence matrix $P$ as the key distinguishing parameter.
+
+    \item We prove \textbf{capacity bounds} (Theorem~\ref{thm:capacity}) showing how sparsity enables superposition in both settings, with matching scaling behavior.
+
+    \item We prove a \textbf{time-space equivalence} (Theorem~\ref{thm:timespace}) showing that iterative refinement can compensate for dimensional bottlenecks, providing theoretical foundations for architectures combining both mechanisms.
+\end{enumerate}
+
+These results unify two previously separate research directions and suggest that techniques developed for one setting (e.g., sparse autoencoders for representational superposition) may transfer to the other (e.g., analyzing reasoning traces in continuous thought).

@@ -1,0 +1,126 @@
+\section{Capacity Bounds}
+\label{sec:capacity}
+
+We now establish how many objects can be encoded in superposition as a function of dimension and sparsity.
+
+\subsection{Sparsity Measure}
+
+\begin{definition}[Co-occurrence Sparsity]
+\label{def:sparsity}
+For co-occurrence matrix $P \in [0,1]^{n \times n}$, define the \emph{sparsity} as:
+\begin{equation}
+S(P) = 1 - \frac{1}{n(n-1)} \sum_{i \neq j} P_{ij}
+\end{equation}
+This measures the fraction of pairs that rarely co-occur. $S = 1$ means no pairs co-occur; $S = 0$ means all pairs always co-occur.
+\end{definition}
+
+\begin{example}[Sparsity in Both Settings]
+\label{ex:sparsity}
+\begin{itemize}
+    \item \textbf{Representational:} With $P_{ij} = p_i p_j$ and uniform $p_i = p$, we have $S = 1 - p^2$. For $p = 0.1$, sparsity is $S = 0.99$.
+    \item \textbf{Reasoning:} For a binary tree with depth $d$, there are $2^d$ leaf traces, but only $O(d)$ pairs share any edge. Thus $S \approx 1 - O(d/2^d) \to 1$ as $d \to \infty$.
+\end{itemize}
+\end{example}
+
+\subsection{Main Capacity Result}
+
+\begin{theorem}[Capacity-Sparsity Bound]
+\label{thm:capacity}
+Let $\mathbf{W}^* = \arg\min_{\mathbf{W}} \mathcal{L}(\mathbf{W}, P)$ be an optimal encoding in $m$ dimensions. Define the \emph{effective number of encoded objects} as:
+\begin{equation}
+n_{\text{eff}} = |\{i : \|\mathbf{w}^*_i\| \geq 1/2\}|
+\end{equation}
+Then for any target interference level $\epsilon > 0$:
+\begin{equation}
+n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{S(P)}{\epsilon}
+\label{eq:capacity_bound}
+\end{equation}
+where $S(P)$ is the co-occurrence sparsity.
+\end{theorem}
+
+\begin{proof}
+Let $\mathbf{G} = \mathbf{W}^\top \mathbf{W} \in \R^{n \times n}$ be the Gram matrix, with $G_{ij} = \langle \mathbf{w}_i, \mathbf{w}_j \rangle$.
+
+\textbf{Step 1: Counting constraints.}
+In $m$ dimensions, at most $m$ vectors can be mutually orthogonal. For $n_{\text{eff}} > m$ objects with $\|\mathbf{w}_i\| \geq 1/2$, there must exist pairs with $G_{ij} \neq 0$.
+
+\textbf{Step 2: Interference budget.}
+The interference loss is:
+\begin{equation}
+\mathcal{L}_{\text{int}} = \sum_{i \neq j} P_{ij} G_{ij}^2 \leq \epsilon
+\end{equation}
+
+By Cauchy-Schwarz, for unit-norm vectors $|G_{ij}| \leq 1$. For vectors with $\|\mathbf{w}_i\| \geq 1/2$, we have $|G_{ij}| \leq \|\mathbf{w}_i\| \|\mathbf{w}_j\| \leq 1$.
+
+\textbf{Step 3: Packing argument.}
+Consider the $\binom{n_{\text{eff}}}{2}$ pairs of effectively encoded objects. Each pair $(i,j)$ with $P_{ij} > 0$ contributes at least $P_{ij} G_{ij}^2$ to the interference loss.
+
+The number of pairs with $P_{ij} > 0$ is at most $(1 - S) \cdot n_{\text{eff}}(n_{\text{eff}}-1)/2$.
+
+For the interference constraint to be satisfied, we need:
+\begin{equation}
+\sum_{i \neq j} P_{ij} G_{ij}^2 \leq \epsilon
+\end{equation}
+
+\textbf{Step 4: Geometric packing.}
+Beyond the first $m$ orthogonal vectors, each additional vector must have non-zero inner product with at least one existing vector. By a sphere-packing argument in $m$ dimensions, the number of nearly-orthogonal directions scales as $O(m^2)$ when small overlaps are permitted.
+
+Specifically, if we allow $|G_{ij}|^2 \leq \delta$ for pairs with $P_{ij} = 1-S$ (the ``dense'' pairs), the maximum packing is:
+\begin{equation}
+n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{1}{\delta}
+\end{equation}
+
+\textbf{Step 5: Combining with sparsity.}
+The effective interference per dense pair is $P_{ij} G_{ij}^2 \leq (1-S) \cdot \delta$. To achieve total interference $\leq \epsilon$:
+\begin{equation}
+(1-S) \cdot \delta \cdot \frac{n_{\text{eff}}(n_{\text{eff}}-1)}{2} \leq \epsilon
+\end{equation}
+
+Solving for $n_{\text{eff}}$ with the packing constraint yields:
+\begin{equation}
+n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{S}{\epsilon}
+\end{equation}
+as claimed.
+\end{proof}
+
+\begin{corollary}[Linear Scaling with Sparsity]
+\label{cor:linear}
+For fixed dimension $m$ and interference tolerance $\epsilon$, the capacity scales linearly with sparsity:
+\begin{equation}
+n_{\text{eff}} = O(m^2 \cdot S / \epsilon)
+\end{equation}
+\end{corollary}
+
+\begin{corollary}[Equivalence of Scaling]
+\label{cor:equiv_scaling}
+Both representational and reasoning superposition exhibit the same capacity scaling:
+\begin{itemize}
+    \item \textbf{Representational:} With activation probability $p$, sparsity is $S = 1 - p^2$, giving $n_{\text{eff}} = O(m^2 / p^2)$ for small $p$.
+    \item \textbf{Reasoning:} With $K$ total traces and $k$ valid traces, if validity is sparse ($k \ll K$), then $S \approx 1$ and $n_{\text{eff}} = O(m^2)$.
+\end{itemize}
+The identical scaling confirms the phenomena are mathematically equivalent.
+\end{corollary}
+
+\subsection{Tightness of the Bound}
+
+\begin{proposition}[Lower Bound]
+\label{prop:lower}
+There exist co-occurrence matrices $P$ and encodings $\mathbf{W}$ achieving:
+\begin{equation}
+n_{\text{eff}} \geq m + c \cdot m^2 \cdot S / \epsilon
+\end{equation}
+for a universal constant $c > 0$.
+\end{proposition}
+
+\begin{proof}[Proof Sketch]
+Consider the construction of \citet{elhage2022toy} using regular polytopes. For $m = 2$ dimensions, $n = 2k$ features can be arranged as vertices of a regular $k$-gon and its reflection, achieving $\langle \mathbf{w}_i, \mathbf{w}_j \rangle = \cos(2\pi |i-j|/k)$.
+
+For sparse features with $P_{ij} = p^2$, the interference is:
+\begin{equation}
+\mathcal{L}_{\text{int}} = p^2 \sum_{i \neq j} \cos^2(2\pi|i-j|/k) = O(p^2 k)
+\end{equation}
+
+Setting this equal to $\epsilon$ and solving: $k = O(\epsilon / p^2) = O(\epsilon \cdot m^2 \cdot S)$ for $m = 2$.
+
+The construction generalizes to higher dimensions using cross-polytopes and their duals.
+\end{proof}

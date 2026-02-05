@@ -1,0 +1,126 @@
+\section{Extended Proofs}
+\label{app:proofs}
+
+\subsection{Proof of Lemma~\ref{lem:rep_expansion} (Full Details)}
+
+We provide a complete derivation of the expected reconstruction error.
+
+\begin{proof}
+Let $\mathbf{x} \in \{0,1\}^n$ with independent components $x_i \sim \text{Bernoulli}(p_i)$. The pre-activation output is:
+\begin{equation}
+\mathbf{z} = \mathbf{W}^\top \mathbf{W} \mathbf{x}
+\end{equation}
+with components:
+\begin{equation}
+z_i = \sum_{j=1}^n x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle = x_i \|\mathbf{w}_i\|^2 + \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle
+\end{equation}
+
+After ReLU: $\hat{x}_i = \max(0, z_i)$.
+
+\textbf{Case 1: $x_i = 1$.}
+\begin{equation}
+z_i = \|\mathbf{w}_i\|^2 + \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle
+\end{equation}
+
+Define $\delta_i = \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle$ (the interference term).
+
+For $\|\mathbf{w}_i\|^2 + \delta_i > 0$ (which holds when $\delta_i > -\|\mathbf{w}_i\|^2$):
+\begin{equation}
+\hat{x}_i = \|\mathbf{w}_i\|^2 + \delta_i
+\end{equation}
+
+The squared error is:
+\begin{align}
+(x_i - \hat{x}_i)^2 &= (1 - \|\mathbf{w}_i\|^2 - \delta_i)^2 \\
+&= (1 - \|\mathbf{w}_i\|^2)^2 - 2(1 - \|\mathbf{w}_i\|^2)\delta_i + \delta_i^2
+\end{align}
+
+Taking expectation over $\{x_j\}_{j \neq i}$:
+\begin{align}
+\E[\delta_i] &= \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle \\
+\E[\delta_i^2] &= \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + \sum_{j \neq k, j,k \neq i} p_j p_k \langle \mathbf{w}_i, \mathbf{w}_j \rangle \langle \mathbf{w}_i, \mathbf{w}_k \rangle
+\end{align}
+
+For sparse features, the cross-terms are $O(p^2)$ and can be absorbed into higher-order corrections:
+\begin{equation}
+\E[(x_i - \hat{x}_i)^2 | x_i = 1] = (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(\epsilon^3)
+\end{equation}
+
+\textbf{Case 2: $x_i = 0$.}
+
+False positive: $\hat{x}_i > 0$ when $\sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle > 0$.
+
+The expected squared error from false positives is:
+\begin{equation}
+\E[(0 - \hat{x}_i)^2 | x_i = 0] = \E[\delta_i^2 \cdot \ind[\delta_i > 0]] = O(\epsilon^2)
+\end{equation}
+for sparse features.
+
+\textbf{Combining cases:}
+\begin{align}
+\E[(x_i - \hat{x}_i)^2] &= p_i \E[(x_i - \hat{x}_i)^2 | x_i = 1] + (1-p_i) \E[(x_i - \hat{x}_i)^2 | x_i = 0] \\
+&= p_i \left[(1 - \|\mathbf{w}_i\|^2)^2 + \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2\right] + O(\epsilon^2)
+\end{align}
+
+Summing over all $i$:
+\begin{equation}
+\E[\|\mathbf{x} - \hat{\mathbf{x}}\|^2] = \sum_i p_i (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(\epsilon^3)
+\end{equation}
+
+This equals $\mathcal{L}(\mathbf{W}, P)$ with $P_{ij} = p_i p_j$.
+\end{proof}
+
+\subsection{Tighter Capacity Bounds}
+
+\begin{proposition}[Refined Capacity Bound]
+\label{prop:tight_capacity}
+Under additional assumptions on the co-occurrence structure, the capacity bound can be tightened to:
+\begin{equation}
+n_{\text{eff}} \leq m + \frac{m^2}{2} \cdot \min\left(\frac{S}{\epsilon}, \frac{1}{\sqrt{\epsilon}}\right)
+\end{equation}
+\end{proposition}
+
+\begin{proof}[Proof Sketch]
+The refinement comes from noting that for very small $\epsilon$, the constraint $P_{ij} G_{ij}^2 \leq \epsilon$ for all pairs forces $|G_{ij}| \leq \sqrt{\epsilon / P_{ij}}$. When $P_{ij} = \Theta(1)$ for some pairs, this gives $|G_{ij}| \leq \sqrt{\epsilon}$, limiting how many vectors can pack into the space regardless of sparsity.
+\end{proof}
+
+\section{Additional Examples}
+\label{app:examples}
+
+\subsection{Polytope Constructions}
+
+\begin{example}[Pentagon in 2D]
+For $m = 2$ and $n = 5$, the optimal construction places features at vertices of a regular pentagon:
+\begin{equation}
+\mathbf{w}_k = \begin{pmatrix} \cos(2\pi k / 5) \\ \sin(2\pi k / 5) \end{pmatrix}, \quad k = 0, \ldots, 4
+\end{equation}
+The interference between adjacent features is $\langle \mathbf{w}_k, \mathbf{w}_{k+1} \rangle = \cos(2\pi/5) \approx 0.309$.
+
+For uniform sparsity $p$, the total interference is:
+\begin{equation}
+\mathcal{L}_{\text{int}} = p^2 \cdot 5 \cdot 4 \cdot \cos^2(2\pi/5) / 2 \approx 1.9 p^2
+\end{equation}
+\end{example}
+
+\subsection{Reasoning Trace Example}
+
+\begin{example}[Graph Reachability]
+Consider a directed graph with source $s$ and target $t$, with three valid paths:
+\begin{itemize}
+    \item Path 1: $s \to a \to t$
+    \item Path 2: $s \to b \to t$
+    \item Path 3: $s \to a \to b \to t$
+\end{itemize}
+
+The co-validity matrix is:
+\begin{equation}
+P = \begin{pmatrix} 1 & 1 & 1 \\ 1 & 1 & 1 \\ 1 & 1 & 1 \end{pmatrix}
+\end{equation}
+(all paths are valid, so all pairs co-occur).
+
+Sparsity: $S = 1 - 6/6 = 0$ (no sparsity, all pairs co-valid).
+
+By Theorem~\ref{thm:capacity}, with $S = 0$, we need $n_{\text{eff}} \leq m$ --- no superposition benefit. The three traces must be nearly orthogonal, requiring $m \geq 3$ dimensions.
+
+In contrast, if only paths 1 and 2 were valid (path 3 invalid), then $S = 1 - 2/6 = 2/3$, allowing more superposition.
+\end{example}

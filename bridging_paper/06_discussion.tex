@@ -1,0 +1,74 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Summary of Results}
+
+We have established three main results:
+
+\begin{enumerate}
+    \item \textbf{Equivalence (Theorem~\ref{thm:equivalence}):} Representational and reasoning superposition minimize the same loss function $\mathcal{L}(\mathbf{W}, P) = \mathcal{L}_{\text{cap}} + \mathcal{L}_{\text{int}}$, differing only in the co-occurrence matrix $P$.
+
+    \item \textbf{Capacity (Theorem~\ref{thm:capacity}):} Both phenomena exhibit identical scaling: $n_{\text{eff}} = O(m^2 \cdot S / \epsilon)$, where sparsity $S$ enables encoding more objects.
+
+    \item \textbf{Time-Space (Theorem~\ref{thm:timespace}):} Iterative refinement with gating provides exponential capacity increase: $\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})$.
+\end{enumerate}
+
+\subsection{Implications for Mechanistic Interpretability}
+
+Our results suggest several directions for interpretability research:
+
+\paragraph{Transfer of techniques.} Methods developed for representational superposition may apply to reasoning superposition:
+\begin{itemize}
+    \item \textbf{Sparse autoencoders} \citep{bricken2023monosemanticity} disentangle superposed features by learning an overcomplete basis. Analogous methods could disentangle superposed reasoning traces.
+    \item \textbf{Feature steering} \citep{templeton2024scaling} modifies activations to change model behavior. Similar interventions on thought vectors could steer reasoning.
+\end{itemize}
+
+\paragraph{Unified analysis framework.} Rather than analyzing features and reasoning traces separately, our framework suggests analyzing the joint space of ``objects in superposition'' with their co-occurrence structure $P$.
+
+\paragraph{Predicting polysemanticity.} The capacity bounds (Theorem~\ref{thm:capacity}) predict when neurons will be polysemantic: when $n > m + m^2 S / \epsilon$, some neurons must encode multiple features. This could guide architecture design for interpretability.
+
+\subsection{Implications for Architecture Design}
+
+\paragraph{Width vs. depth tradeoff.} Theorem~\ref{thm:timespace} quantifies a fundamental tradeoff:
+\begin{itemize}
+    \item \textbf{Wider models} ($d$ large): More capacity per step, less superposition needed.
+    \item \textbf{Deeper/iterative models} ($T$ large): Exponential capacity from iteration, more superposition tolerated.
+\end{itemize}
+For interpretability, wider models may be preferable (less superposition to disentangle), but iterative models may be more parameter-efficient.
+
+\paragraph{Bottleneck design.} Our results suggest deliberate bottlenecks can be useful:
+\begin{enumerate}
+    \item Force superposition by constraining $d < n$.
+    \item Add iterative steps to unpack superposition during inference.
+    \item The bottleneck acts as an ``interpretability checkpoint'' where all information must pass through a low-dimensional space.
+\end{enumerate}
+
+\subsection{Implications for AI Safety}
+
+\paragraph{Understanding reasoning.} If language models reason via superposition of traces (as suggested by \citet{zhu2025reasoning}), then:
+\begin{itemize}
+    \item Harmful reasoning may be one of multiple superposed traces.
+    \item Steering away from harm requires identifying and suppressing specific traces without disrupting beneficial ones.
+    \item The co-occurrence structure $P$ determines which traces can be independently manipulated.
+\end{itemize}
+
+\paragraph{Predictable failures.} The capacity bounds predict when superposition-induced errors occur: when the number of active objects exceeds $m + m^2 S / \epsilon$, interference causes errors. This could enable proactive safety measures.
+
+\subsection{Limitations and Future Work}
+
+\paragraph{Approximations in proofs.} Our equivalence theorem (Theorem~\ref{thm:equivalence}) relies on a small-interference approximation. For highly non-sparse settings, higher-order terms may matter.
+
+\paragraph{Empirical validation.} While our results are theoretical, empirical validation would strengthen the claims:
+\begin{itemize}
+    \item Measure whether the capacity scaling $O(m^2 S / \epsilon)$ holds in practice.
+    \item Test whether iterative models achieve the predicted exponential capacity increase.
+    \item Verify that techniques transfer between representational and reasoning settings.
+\end{itemize}
+
+\paragraph{Beyond binary co-occurrence.} Our framework uses binary validity for reasoning traces. Extending to graded validity (partial correctness) could better capture real reasoning.
+
+\paragraph{Learning dynamics.} We characterize optimal solutions but not learning dynamics. Understanding \emph{how} superposition emerges during training \citep{zhu2025emergence} remains important.
+
+\subsection{Conclusion}
+
+We have proven that representational superposition and reasoning superposition are mathematically equivalent, both arising from optimizing capacity subject to interference constraints weighted by co-occurrence. This unification suggests that the extensive literature on feature superposition directly informs our understanding of reasoning in neural networks, and vice versa. The time-space equivalence theorem further reveals that iterative computation can exponentially amplify representational capacity, providing theoretical foundations for architectures that combine both mechanisms.

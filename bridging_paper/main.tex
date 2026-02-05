@@ -1,0 +1,76 @@
+\documentclass[10pt]{article}
+\usepackage{tmlr}
+
+% Optional math commands
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subfigure}
+\usepackage{booktabs}
+
+% For theorems and proofs
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\ind}{\mathbf{1}}
+
+\title{On the Equivalence of Representational and Reasoning Superposition}
+
+\author{\name Michael Jerge \email mj6ux@virginia.edu \\
+      \addr Department of Computer Science\\
+      University of Virginia
+      \AND
+      \name David Evans \email evans@virginia.edu\\
+      \addr Department of Computer Science \\
+      University of Virginia}
+
+\def\month{MM}
+\def\year{YYYY}
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Recent work in mechanistic interpretability has identified \emph{superposition} as a fundamental phenomenon in neural networks, where models encode more features than they have dimensions. Independently, research on chain-of-continuous-thought has revealed that language models can maintain multiple reasoning traces simultaneously in latent space---a form of \emph{reasoning superposition}. We prove that these two phenomena are mathematically equivalent, arising from the same underlying optimization problem parameterized by different co-occurrence structures. Specifically, we show that both representational superposition (packing features into limited dimensions) and reasoning superposition (maintaining multiple valid reasoning traces) minimize a unified loss function that trades off capacity against interference, weighted by co-occurrence probability. We establish formal bounds on how sparsity enables superposition in both settings and prove that temporal depth (iterative refinement) can compensate for spatial compression (bottleneck dimensions), providing theoretical foundations for architectures that combine both mechanisms.
+\end{abstract}
+
+\input{01_introduction}
+\input{02_preliminaries}
+\input{03_equivalence}
+\input{04_capacity_bounds}
+\input{05_time_space}
+\input{06_discussion}
+
+\bibliography{references}
+\bibliographystyle{tmlr}
+
+\appendix
+\input{appendix}
+
+\end{document}
