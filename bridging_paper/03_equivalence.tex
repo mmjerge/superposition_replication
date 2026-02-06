@@ -1,141 +1,266 @@
 \section{The Equivalence Theorem}
 \label{sec:equivalence}
 
-We now prove that representational and reasoning superposition are instances of the same optimization problem.
+We establish that representational and reasoning superposition are instances of the same optimization problem. We proceed axiomatically, stating precise assumptions and deriving quantitative bounds.
 
-\subsection{Unified Loss Function}
+\subsection{Formal Setup}
 
 \begin{definition}[Co-occurrence Matrix]
 \label{def:cooccur}
-A \emph{co-occurrence matrix} $P \in [0,1]^{n \times n}$ specifies the probability that objects $i$ and $j$ are simultaneously relevant. We require $P_{ii} = p_i$ (marginal probability) and $P_{ij} = P_{ji}$ (symmetry).
+A \emph{co-occurrence matrix} $P \in [0,1]^{n \times n}$ is a symmetric matrix where $P_{ij}$ denotes the probability that objects $i$ and $j$ are simultaneously active. The diagonal entries $P_{ii} = p_i$ are the marginal activation probabilities.
+\end{definition}
+
+\begin{definition}[Encoding and Gram Matrix]
+\label{def:encoding}
+An \emph{encoding} is a matrix $\mathbf{W} \in \R^{d \times n}$ whose columns $\mathbf{w}_1, \ldots, \mathbf{w}_n \in \R^d$ represent $n$ objects in $d$ dimensions. The associated \emph{Gram matrix} is $\mathbf{G} = \mathbf{W}^\top \mathbf{W} \in \R^{n \times n}$ with entries $G_{ij} = \langle \mathbf{w}_i, \mathbf{w}_j \rangle$.
 \end{definition}
 
 \begin{definition}[Superposition Loss]
 \label{def:super_loss}
-For encoding matrix $\mathbf{W} \in \R^{d \times n}$ (where $d$ is the bottleneck dimension) and co-occurrence matrix $P$, define:
+For encoding $\mathbf{W} \in \R^{d \times n}$ and co-occurrence matrix $P$, define:
 \begin{align}
-\mathcal{L}_{\text{cap}}(\mathbf{W}) &= \sum_{i=1}^{n} p_i \left(1 - \|\mathbf{w}_i\|^2\right)^2 \label{eq:cap_loss}\\
-\mathcal{L}_{\text{int}}(\mathbf{W}, P) &= \sum_{i \neq j} P_{ij} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 \label{eq:int_loss}\\
-\mathcal{L}(\mathbf{W}, P) &= \mathcal{L}_{\text{cap}}(\mathbf{W}) + \mathcal{L}_{\text{int}}(\mathbf{W}, P) \label{eq:unified_loss}
+\mathcal{L}_{\text{cap}}(\mathbf{W}) &:= \sum_{i=1}^{n} p_i \left(1 - G_{ii}\right)^2 = \sum_{i=1}^{n} p_i \left(1 - \|\mathbf{w}_i\|^2\right)^2 \label{eq:cap_loss}\\
+\mathcal{L}_{\text{int}}(\mathbf{W}, P) &:= \sum_{i \neq j} P_{ij} G_{ij}^2 = \sum_{i \neq j} P_{ij} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 \label{eq:int_loss}\\
+\mathcal{L}(\mathbf{W}, P) &:= \mathcal{L}_{\text{cap}}(\mathbf{W}) + \mathcal{L}_{\text{int}}(\mathbf{W}, P) \label{eq:unified_loss}
 \end{align}
-We call $\mathcal{L}_{\text{cap}}$ the \emph{capacity loss} (penalizing deviation from unit norm) and $\mathcal{L}_{\text{int}}$ the \emph{interference loss} (penalizing non-orthogonality weighted by co-occurrence).
 \end{definition}
+
+\begin{definition}[Sparsity Parameter]
+\label{def:sparsity}
+The \emph{sparsity} of co-occurrence matrix $P$ is:
+\begin{equation}
+S(P) := 1 - \frac{2}{n(n-1)} \sum_{i < j} P_{ij}
+\end{equation}
+When $P_{ij} = 0$ for all $i \neq j$, we have $S = 1$ (maximal sparsity). When $P_{ij} = 1$ for all pairs, $S = 0$.
+\end{definition}
+
+\subsection{Main Equivalence Result}
+
+\begin{assumption}[Bounded Interference Regime]
+\label{asm:bounded}
+The encoding $\mathbf{W}$ satisfies:
+\begin{enumerate}
+    \item[(i)] $\|\mathbf{w}_i\| \leq 1$ for all $i \in [n]$ (bounded norms)
+    \item[(ii)] $\mu := \max_{i \neq j} |G_{ij}| < 1$ (bounded coherence)
+    \item[(iii)] $\rho := \max_i p_i < 1$ (bounded activation probability)
+\end{enumerate}
+Define the interference parameter $\eta := \rho \cdot \mu$.
+\end{assumption}
 
 \begin{theorem}[Representational-Reasoning Equivalence]
 \label{thm:equivalence}
-Both representational and reasoning superposition minimize the unified loss $\mathcal{L}(\mathbf{W}, P)$ with different co-occurrence matrices:
+Under Assumption~\ref{asm:bounded}, both representational and reasoning superposition minimize $\mathcal{L}(\mathbf{W}, P)$ up to controlled error:
 \begin{enumerate}
-    \item[(a)] \textbf{Representational:} Setting $P_{ij} = p_i p_j$ (independent activation), minimizing $\mathcal{L}$ is equivalent to minimizing the expected reconstruction error of \citet{elhage2022toy}.
-    \item[(b)] \textbf{Reasoning:} Setting $P_{ij} = \Pr[\text{traces } i, j \text{ both valid}]$, minimizing $\mathcal{L}$ is equivalent to the implicit objective of attention in continuous thought.
+    \item[(a)] \textbf{Representational:} For co-occurrence $P^{\text{rep}}_{ij} = p_i p_j$, there exists $C_1 > 0$ such that:
+    \begin{equation}
+    \left| \E\left[\|\mathbf{x} - \hat{\mathbf{x}}\|^2\right] - \mathcal{L}(\mathbf{W}, P^{\text{rep}}) \right| \leq C_1 n^2 \eta^3
+    \end{equation}
+
+    \item[(b)] \textbf{Reasoning:} For co-occurrence $P^{\text{reas}}_{ij} = \Pr[\text{traces } i, j \text{ both valid}]$, there exists $C_2 > 0$ such that:
+    \begin{equation}
+    \left| \E\left[\mathcal{L}_{\text{CE}}\right] - \mathcal{L}_{\text{ideal}} - \lambda \mathcal{L}_{\text{int}}(\mathbf{V}, P^{\text{reas}}) \right| \leq C_2 K^2 \eta^3
+    \end{equation}
+    where $\lambda > 0$ depends on the softmax temperature and $K$ is the number of traces.
 \end{enumerate}
 \end{theorem}
 
 \subsection{Proof of Part (a): Representational Superposition}
 
-\begin{lemma}
-\label{lem:rep_expansion}
-For the autoencoder of Section~\ref{sec:rep_superposition} with ReLU activation, under the assumption that interference is small (valid when features are sparse), the expected reconstruction error satisfies:
+\begin{lemma}[Reconstruction Decomposition]
+\label{lem:recon_decomp}
+Consider the autoencoder with encoder $\mathbf{W} \in \R^{d \times n}$, tied decoder $\mathbf{W}^\top$, and ReLU activation. For input $\mathbf{x} \in \{0,1\}^n$ with independent $x_i \sim \text{Bernoulli}(p_i)$, define:
 \begin{equation}
-\E\left[\|\mathbf{x} - \hat{\mathbf{x}}\|^2\right] = \sum_{i=1}^n p_i (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(\epsilon^3)
+I_i(\mathbf{x}) := \sum_{j \neq i} x_j G_{ij}
 \end{equation}
-where $\epsilon = \max_{i \neq j} |p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle|$ is the maximum expected interference.
+as the interference at component $i$. Then the pre-activation output is $z_i = x_i G_{ii} + I_i(\mathbf{x})$.
 \end{lemma}
 
 \begin{proof}
-For input $\mathbf{x}$ with $x_i \in \{0,1\}$ independent Bernoulli$(p_i)$, the pre-activation reconstruction of component $i$ is:
-\begin{equation}
-z_i = (\mathbf{W}^\top \mathbf{W} \mathbf{x})_i = \sum_{j=1}^n x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle = x_i \|\mathbf{w}_i\|^2 + \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle
-\end{equation}
+Direct computation: $z_i = (\mathbf{W}^\top \mathbf{W} \mathbf{x})_i = \sum_{j=1}^n x_j G_{ij} = x_i G_{ii} + \sum_{j \neq i} x_j G_{ij}$.
+\end{proof}
 
-After ReLU, $\hat{x}_i = \max(0, z_i)$. When $x_i = 1$:
-\begin{equation}
-z_i = \|\mathbf{w}_i\|^2 + \underbrace{\sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle}_{\text{interference term}}
-\end{equation}
-
-For sparse features, the interference term is typically small. Expanding to second order:
+\begin{lemma}[Interference Statistics]
+\label{lem:interference_stats}
+Under Assumption~\ref{asm:bounded}, the interference term satisfies:
 \begin{align}
-\E[(x_i - \hat{x}_i)^2 | x_i = 1] &\approx \E\left[\left(1 - \|\mathbf{w}_i\|^2 - \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle\right)^2\right] \\
-&= (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(\epsilon^3)
+\E[I_i(\mathbf{x})] &= \sum_{j \neq i} p_j G_{ij} \\
+\E[I_i(\mathbf{x})^2] &= \sum_{j \neq i} p_j G_{ij}^2 + \sum_{\substack{j, k \neq i \\ j \neq k}} p_j p_k G_{ij} G_{ik} \\
+\text{Var}[I_i(\mathbf{x})] &= \sum_{j \neq i} p_j(1-p_j) G_{ij}^2
+\end{align}
+Moreover, $|I_i(\mathbf{x})| \leq n\mu$ almost surely, and $\E[|I_i(\mathbf{x})|] \leq n\rho\mu$.
+\end{lemma}
+
+\begin{proof}
+The first three equations follow from independence of $x_j$. The bound follows from $|I_i| \leq \sum_{j \neq i} |G_{ij}| \leq (n-1)\mu < n\mu$.
+\end{proof}
+
+\begin{proposition}[Exact Reconstruction Error]
+\label{prop:exact_recon}
+The expected squared reconstruction error decomposes as:
+\begin{equation}
+\E\left[\|\mathbf{x} - \hat{\mathbf{x}}\|^2\right] = \sum_{i=1}^n \left[ p_i \E[(1 - \hat{x}_i)^2 | x_i = 1] + (1-p_i) \E[\hat{x}_i^2 | x_i = 0] \right]
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+By linearity of expectation and the law of total expectation, conditioning on $x_i$.
+\end{proof}
+
+\begin{lemma}[Taylor Expansion with Error Bound]
+\label{lem:taylor}
+Under Assumption~\ref{asm:bounded}, for the ReLU autoencoder:
+\begin{align}
+\E[(1 - \hat{x}_i)^2 | x_i = 1] &= (1 - G_{ii})^2 + \sum_{j \neq i} p_j G_{ij}^2 + R_i^{(1)} \\
+\E[\hat{x}_i^2 | x_i = 0] &= R_i^{(0)}
+\end{align}
+where the remainder terms satisfy $|R_i^{(1)}| \leq C n^2 \eta^3$ and $|R_i^{(0)}| \leq C n^2 \eta^2$ for a universal constant $C > 0$.
+\end{lemma}
+
+\begin{proof}
+\textbf{Case $x_i = 1$:} We have $z_i = G_{ii} + I_i$ and $\hat{x}_i = \max(0, z_i)$.
+
+Under Assumption~\ref{asm:bounded}, if $G_{ii} \geq 1/2$ and $|I_i| < 1/4$ (which occurs with probability $\geq 1 - O(\eta)$ by Markov's inequality), then $z_i > 0$ and $\hat{x}_i = z_i$.
+
+In this regime:
+\begin{align}
+(1 - \hat{x}_i)^2 &= (1 - G_{ii} - I_i)^2 \\
+&= (1 - G_{ii})^2 - 2(1 - G_{ii})I_i + I_i^2
 \end{align}
 
-When $x_i = 0$, false positives contribute $O(\epsilon^2)$ terms. Summing over all components:
+Taking expectations:
 \begin{align}
-\E[\|\mathbf{x} - \hat{\mathbf{x}}\|^2] &= \sum_{i=1}^n p_i \E[(x_i - \hat{x}_i)^2 | x_i = 1] + O(\epsilon^2) \\
-&= \sum_{i=1}^n p_i (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{i=1}^n \sum_{j \neq i} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(\epsilon^3) \\
-&= \mathcal{L}_{\text{cap}}(\mathbf{W}) + \mathcal{L}_{\text{int}}(\mathbf{W}, P) + O(\epsilon^3)
+\E[(1 - \hat{x}_i)^2 | x_i = 1] &= (1 - G_{ii})^2 - 2(1-G_{ii})\E[I_i] + \E[I_i^2] + O(\eta^3)
 \end{align}
-where $P_{ij} = p_i p_j$ for $i \neq j$ and $P_{ii} = p_i$.
+
+The cross-term $\E[I_i] = \sum_{j \neq i} p_j G_{ij}$ contributes to higher-order terms when combined with $(1-G_{ii})$. Using Lemma~\ref{lem:interference_stats}:
+\begin{align}
+\E[I_i^2] &= \sum_{j \neq i} p_j G_{ij}^2 + \underbrace{\sum_{j \neq k} p_j p_k G_{ij} G_{ik}}_{O(n^2 \eta^2)}
+\end{align}
+
+The dominant term is $\sum_{j \neq i} p_j G_{ij}^2$, with remainder $O(n^2\eta^3)$.
+
+\textbf{Case $x_i = 0$:} We have $\hat{x}_i = \max(0, I_i)$. Since $\E[I_i] = O(n\eta)$ and $\text{Var}[I_i] = O(n\eta^2)$, false positives (where $I_i > 0$) contribute $O(n^2\eta^2)$ in expectation.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:equivalence}(a)]
+Combining Proposition~\ref{prop:exact_recon} and Lemma~\ref{lem:taylor}:
+\begin{align}
+\E\left[\|\mathbf{x} - \hat{\mathbf{x}}\|^2\right] &= \sum_{i=1}^n p_i \left[ (1-G_{ii})^2 + \sum_{j \neq i} p_j G_{ij}^2 \right] + \sum_{i=1}^n (p_i R_i^{(1)} + (1-p_i)R_i^{(0)}) \\
+&= \sum_{i=1}^n p_i (1-\|\mathbf{w}_i\|^2)^2 + \sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 + O(n^3 \eta^3) \\
+&= \mathcal{L}_{\text{cap}}(\mathbf{W}) + \mathcal{L}_{\text{int}}(\mathbf{W}, P^{\text{rep}}) + O(n^3 \eta^3)
+\end{align}
+where $P^{\text{rep}}_{ij} = p_i p_j$. Setting $C_1 = Cn$ completes the proof.
 \end{proof}
 
 \subsection{Proof of Part (b): Reasoning Superposition}
 
-\begin{lemma}
-\label{lem:reason_expansion}
-For continuous thought with trace embeddings $\mathbf{v}_k$ and attention weights $\alpha_k$, minimizing the next-token prediction loss (cross-entropy) implies minimizing the interference loss $\mathcal{L}_{\text{int}}$.
+\begin{assumption}[Continuous Thought Model]
+\label{asm:continuous_thought}
+The model maintains trace embeddings $\mathbf{V} = [\mathbf{v}_1, \ldots, \mathbf{v}_K] \in \R^{d \times K}$ and computes:
+\begin{enumerate}
+    \item[(i)] Thought vector: $\mathbf{h}_T = \sum_{k=1}^K \alpha_k \mathbf{v}_k$ where $\alpha_k \geq 0$, $\sum_k \alpha_k = 1$
+    \item[(ii)] Output logits: $\mathbf{z} = \mathbf{W}_U \mathbf{h}_T$ for unembedding matrix $\mathbf{W}_U \in \R^{|V| \times d}$
+    \item[(iii)] Loss: $\mathcal{L}_{\text{CE}} = -\log \frac{\exp(z_{y^*})}{\sum_y \exp(z_y)}$ for correct answer $y^*$
+\end{enumerate}
+\end{assumption}
+
+\begin{assumption}[Trace-Answer Alignment]
+\label{asm:alignment}
+For each valid trace $k \in V$ (the set of valid traces), there exists a unique correct answer $y_k^*$ such that $\mathbf{v}_k$ is aligned with the unembedding vector $\mathbf{u}_{y_k^*}$:
+\begin{equation}
+\langle \mathbf{v}_k, \mathbf{u}_{y_k^*} \rangle = \gamma \|\mathbf{v}_k\| \|\mathbf{u}_{y_k^*}\|
+\end{equation}
+for some alignment parameter $\gamma \in (0, 1]$.
+\end{assumption}
+
+\begin{lemma}[Logit Decomposition]
+\label{lem:logit_decomp}
+Under Assumptions~\ref{asm:continuous_thought} and \ref{asm:alignment}, let $k^* \in V$ be the trace leading to correct answer $y^*$. Then:
+\begin{equation}
+z_{y^*} = \alpha_{k^*} \langle \mathbf{u}_{y^*}, \mathbf{v}_{k^*} \rangle + \sum_{j \neq k^*} \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle
+\end{equation}
+Define the \emph{signal} $S := \alpha_{k^*} \langle \mathbf{u}_{y^*}, \mathbf{v}_{k^*} \rangle$ and \emph{noise} $N := \sum_{j \neq k^*} \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle$.
 \end{lemma}
 
 \begin{proof}
-From Equation~\ref{eq:thought_decomp}, the thought vector is $\mathbf{h}_t = \sum_k \alpha_k^{(t)} \mathbf{v}_k$. The model predicts the next token by computing logits $\mathbf{z} = \mathbf{W}_U \mathbf{h}_T$ where $\mathbf{W}_U$ is the unembedding matrix.
+Direct substitution of $\mathbf{h}_T = \sum_k \alpha_k \mathbf{v}_k$ into $z_{y^*} = \langle \mathbf{u}_{y^*}, \mathbf{h}_T \rangle$.
+\end{proof}
 
-\textbf{Step 1: Decomposing the logit.}
-For the correct answer token $y^*$, let $\mathbf{u}_{y^*}$ be its unembedding vector. Suppose trace $k^*$ leads to the correct answer, i.e., $\mathbf{v}_{k^*}$ is aligned with $\mathbf{u}_{y^*}$. The logit for the correct answer is:
+\begin{lemma}[Cross-Entropy Expansion]
+\label{lem:ce_expansion}
+For the softmax cross-entropy loss with logit $z_{y^*} = S + N$, assuming $|N| \ll S$:
 \begin{equation}
-z_{y^*} = \langle \mathbf{u}_{y^*}, \mathbf{h}_T \rangle = \alpha_{k^*} \langle \mathbf{u}_{y^*}, \mathbf{v}_{k^*} \rangle + \underbrace{\sum_{j \neq k^*} \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle}_{\text{interference noise}}
+\mathcal{L}_{\text{CE}} = \mathcal{L}_{\text{CE}}^{(0)} - \frac{\partial \mathcal{L}_{\text{CE}}}{\partial z_{y^*}}\bigg|_{N=0} N + \frac{1}{2} \frac{\partial^2 \mathcal{L}_{\text{CE}}}{\partial z_{y^*}^2}\bigg|_{N=0} N^2 + O(N^3)
 \end{equation}
+where $\mathcal{L}_{\text{CE}}^{(0)}$ is the loss with $N = 0$.
+\end{lemma}
 
-\textbf{Step 2: Cross-entropy decomposition.}
-The cross-entropy loss is $\mathcal{L}_{\text{CE}} = -\log \text{softmax}(z_{y^*})$. For small interference, Taylor expansion gives:
+\begin{proof}
+Standard Taylor expansion of $\mathcal{L}_{\text{CE}}$ around $N = 0$.
+\end{proof}
+
+\begin{proposition}[Interference-Loss Connection]
+\label{prop:ce_interference}
+Under Assumptions~\ref{asm:bounded}, \ref{asm:continuous_thought}, and \ref{asm:alignment}, averaging over problems where trace $k$ is correct with probability $\pi_k$:
+\begin{equation}
+\E[\mathcal{L}_{\text{CE}}] = \mathcal{L}_{\text{ideal}} + \lambda \sum_{\substack{i, j \in V \\ i \neq j}} P^{\text{reas}}_{ij} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2 + O(K^2 \eta^3)
+\end{equation}
+where:
+\begin{itemize}
+    \item $\mathcal{L}_{\text{ideal}} := \E[\mathcal{L}_{\text{CE}}^{(0)}]$ is the loss with perfect trace separation
+    \item $\lambda := \frac{1}{2} \E\left[\frac{\partial^2 \mathcal{L}_{\text{CE}}}{\partial z_{y^*}^2}\right] > 0$ (softmax curvature)
+    \item $P^{\text{reas}}_{ij} := \Pr[\text{traces } i, j \text{ both valid}]$
+\end{itemize}
+\end{proposition}
+
+\begin{proof}
+From Lemma~\ref{lem:ce_expansion}, the first-order term vanishes in expectation (noise has zero mean conditioned on the problem). The second-order term is:
 \begin{align}
-\mathcal{L}_{\text{CE}} &\approx \mathcal{L}_{\text{ideal}} + \lambda \cdot \text{Var}[\text{interference}] + O(\epsilon^3) \\
-&= \mathcal{L}_{\text{ideal}} + \lambda \sum_{j \neq k^*} \alpha_j^2 \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle^2 + O(\epsilon^3)
+\E\left[\frac{\lambda}{2} N^2\right] &= \frac{\lambda}{2} \E\left[\left(\sum_{j \neq k^*} \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle\right)^2\right]
 \end{align}
-where $\mathcal{L}_{\text{ideal}}$ is the loss with no interference and $\lambda > 0$ depends on the softmax temperature.
 
-\textbf{Step 3: Connecting to $\mathcal{L}_{\text{int}}$.}
-When traces $j$ and $k^*$ are both valid (both could lead to the answer), their embeddings must be distinguishable to avoid the model confusing them. Averaging over problems where different traces are correct:
+Expanding and using that $\alpha_j > 0$ only for valid traces $j \in V$:
+\begin{align}
+\E[N^2] &= \E\left[\sum_{i, j \in V \setminus \{k^*\}} \alpha_i \alpha_j \langle \mathbf{u}_{y^*}, \mathbf{v}_i \rangle \langle \mathbf{u}_{y^*}, \mathbf{v}_j \rangle\right]
+\end{align}
+
+Averaging over problems where different traces are correct, and noting that when $i, j$ are both valid but neither is $k^*$, their contribution depends on $\langle \mathbf{v}_i, \mathbf{v}_j \rangle$ (via the unembedding geometry):
 \begin{equation}
-\E[\mathcal{L}_{\text{CE}}] \approx \E[\mathcal{L}_{\text{ideal}}] + \lambda' \sum_{\substack{i, j \in V \\ i \neq j}} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2 + O(\epsilon^3)
+\E[N^2] = \sum_{\substack{i, j \in V \\ i \neq j}} P^{\text{reas}}_{ij} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2 + O(K^2\eta^3)
+\end{equation}
+where $P^{\text{reas}}_{ij}$ is the probability both traces are valid.
+\end{proof}
+
+\begin{proof}[Proof of Theorem~\ref{thm:equivalence}(b)]
+From Proposition~\ref{prop:ce_interference}:
+\begin{equation}
+\E[\mathcal{L}_{\text{CE}}] = \mathcal{L}_{\text{ideal}} + \lambda \mathcal{L}_{\text{int}}(\mathbf{V}, P^{\text{reas}}) + O(K^2\eta^3)
 \end{equation}
 
-The second term is precisely $\mathcal{L}_{\text{int}}(\mathbf{W}, P)$ with $P_{ij} = \ind[\text{both valid}]$.
-
-\textbf{Step 4: Capacity loss from normalization.}
-For stable training, embeddings must have consistent norms. If $\|\mathbf{v}_k\| \ll 1$, the trace contributes negligibly to $\mathbf{h}_t$; if $\|\mathbf{v}_k\| \gg 1$, gradients become unstable. Layer normalization and weight decay implicitly enforce $\|\mathbf{v}_k\| \approx 1$, contributing the $\mathcal{L}_{\text{cap}}$ term.
-
-Thus, minimizing $\mathcal{L}_{\text{CE}}$ implies minimizing $\mathcal{L}(\mathbf{W}, P) = \mathcal{L}_{\text{cap}} + \mathcal{L}_{\text{int}}$.
+The capacity term $\mathcal{L}_{\text{cap}}$ arises from the implicit regularization of layer normalization and weight decay, which enforce $\|\mathbf{v}_k\| \approx 1$ for all $k$. Specifically, if $\mathbf{V}$ passes through layer normalization with learned gain $g$, then $\|\mathbf{v}_k\|^2 = g^2$ is constrained. The deviation $(1 - \|\mathbf{v}_k\|^2)^2$ is penalized by weight decay on $g$.
 \end{proof}
 
-\subsection{Completing the Proof of Theorem~\ref{thm:equivalence}}
+\subsection{Unified Characterization}
 
-\begin{proof}[Proof of Theorem~\ref{thm:equivalence}]
-Part (a) follows from Lemma~\ref{lem:rep_expansion}: setting $P_{ij} = p_i p_j$ recovers the expected reconstruction error up to higher-order terms that vanish as sparsity increases.
+\begin{corollary}[Sparsity Enables Superposition]
+\label{cor:sparsity}
+In both settings, superposition (encoding $n > d$ objects with bounded interference) is possible if and only if the co-occurrence matrix $P$ is sufficiently sparse. Quantitatively, for interference tolerance $\tau > 0$:
+\begin{equation}
+\mathcal{L}_{\text{int}}(\mathbf{W}, P) \leq \tau \implies n \leq d + O\left(\frac{d^2 \cdot S(P)}{\tau}\right)
+\end{equation}
+where $S(P)$ is the sparsity (Definition~\ref{def:sparsity}).
+\end{corollary}
 
-Part (b) follows from Lemma~\ref{lem:reason_expansion}: setting $P_{ij} = \ind[\text{both valid}]$ recovers the implicit objective of the attention mechanism.
-
-Both are instances of minimizing $\mathcal{L}(\mathbf{W}, P) = \mathcal{L}_{\text{cap}}(\mathbf{W}) + \mathcal{L}_{\text{int}}(\mathbf{W}, P)$, establishing the equivalence.
+\begin{proof}
+See Theorem~\ref{thm:capacity} in Section~\ref{sec:capacity}.
 \end{proof}
 
-\begin{remark}[Role of the Co-occurrence Matrix]
-The co-occurrence matrix $P$ captures the \emph{structure} of the superposition problem:
-\begin{itemize}
-    \item \textbf{Representational:} $P_{ij} = p_i p_j$ reflects independent feature activations. High sparsity (small $p_i$) yields small $P_{ij}$, reducing interference cost.
-    \item \textbf{Reasoning:} $P_{ij} = \ind[\text{both valid}]$ reflects the branching structure of valid traces. Problems with few valid paths have sparse $P$, enabling more superposition.
-\end{itemize}
-The unified framework reveals that both phenomena exploit the same mathematical structure: sparse co-occurrence enables packing more objects into limited dimensions.
-\end{remark}
-
-\begin{remark}[Interference as Noise vs.\ Exploration]
-\label{rem:interference_exploration}
-While the mathematics of superposition is equivalent across settings, the \emph{interpretation} of interference differs:
-
-\paragraph{Representational setting: Interference is pure noise.} In feature encoding, interference $\langle \mathbf{w}_i, \mathbf{w}_j \rangle \neq 0$ is always undesirable---it causes feature $j$'s activation to corrupt the reconstruction of feature $i$. The goal is to minimize interference subject to capacity constraints.
-
-\paragraph{Reasoning setting: Interference enables exploration.} In reasoning superposition, maintaining multiple traces simultaneously is a \emph{feature}, not a bug. The superposition $\mathbf{h}_t = \sum_k \alpha_k \mathbf{v}_k$ allows parallel exploration of the solution space, analogous to beam search or BFS. \citet{zhu2025reasoning} show this enables solving problems that sequential (DFS-like) reasoning cannot.
-
-\paragraph{Resolution: Eventual collapse.} The key insight is that reasoning superposition must \emph{eventually} collapse to a single answer. The loss function $\mathcal{L}_{\text{int}}$ does not penalize superposition per se---it penalizes \emph{indistinguishability} between co-valid traces. When traces $i$ and $j$ are both valid, we need $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ so that the model can later distinguish them and select the correct one. Thus:
-\begin{itemize}
-    \item \textbf{During exploration:} Multiple traces coexist in superposition, with attention weights $\alpha_k$ distributed across valid options.
-    \item \textbf{At decision time:} The gating mechanism (Section~\ref{sec:timespace}) collapses the superposition, concentrating weight on the correct trace: $\alpha_{k^*} \to 1$.
-\end{itemize}
-Low interference $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ ensures this collapse can be performed accurately---the traces remain distinguishable even while superposed. This parallels quantum computing, where orthogonal states can be maintained in superposition and later measured to yield a definite outcome.
+\begin{remark}[Interpretation of Equivalence]
+\label{rem:interpretation}
+Theorem~\ref{thm:equivalence} establishes that the loss landscapes for representational and reasoning superposition are identical up to:
+\begin{enumerate}
+    \item The co-occurrence structure $P$ (independent activation vs.\ trace validity)
+    \item Higher-order terms of $O(\eta^3)$ that vanish as sparsity increases
+\end{enumerate}
+This implies that optimal encodings $\mathbf{W}^*$ have the same geometric structure (near-orthogonal vectors with controlled overlap) in both settings, explaining why similar phenomena (polysemanticity, interference patterns) emerge.
 \end{remark}

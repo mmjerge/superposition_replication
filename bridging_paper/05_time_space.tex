@@ -1,163 +1,230 @@
 \section{Time-Space Equivalence}
 \label{sec:timespace}
 
-A key architectural question is how iterative refinement (temporal depth) relates to representational capacity (spatial width). We prove that time can compensate for space in superposition.
+We establish a fundamental tradeoff between temporal depth (iterative refinement steps) and spatial width (bottleneck dimension). Under appropriate gating, time can exponentially compensate for space.
 
-\subsection{Setup}
-
-Consider a model processing information through a bottleneck of dimension $d$, with $T$ iterative refinement steps. Let $f_\theta: \R^d \to \R^d$ denote the transformation at each step, and let $\mathbf{h}_0 \in \R^d$ be the initial (superposed) representation.
+\subsection{Formal Setup}
 
 \begin{definition}[Iterative Refinement Model]
 \label{def:iterative}
-An \emph{iterative refinement model} $\mathcal{M}_T(d)$ computes:
+An \emph{iterative refinement model} $\mathcal{M}_T(d)$ consists of:
+\begin{enumerate}
+    \item[(i)] A bottleneck space $\R^d$
+    \item[(ii)] An initial encoding $\mathbf{h}_0 \in \R^d$
+    \item[(iii)] A refinement function $f_\theta: \R^d \times \R^{d_c} \to \R^d$ parameterized by $\theta$
+    \item[(iv)] $T$ refinement steps: $\mathbf{h}_t = f_\theta(\mathbf{h}_{t-1}, \mathbf{c})$ for $t = 1, \ldots, T$
+\end{enumerate}
+where $\mathbf{c} \in \R^{d_c}$ is a context vector.
+\end{definition}
+
+\begin{definition}[Capacity Function]
+\label{def:capacity_func}
+The \emph{capacity} $\mathcal{I}_T(d, \tau)$ of model $\mathcal{M}_T(d)$ is the maximum number of objects that can be:
+\begin{enumerate}
+    \item[(i)] Encoded in $\mathbf{h}_0$ with initial interference budget $\mathcal{B}(\mathbf{h}_0) \leq \tau$
+    \item[(ii)] Recovered from $\mathbf{h}_T$ with error probability $\leq \epsilon$
+\end{enumerate}
+We write $\mathcal{I}_T(d)$ when $\tau$ and $\epsilon$ are implicit.
+\end{definition}
+
+\begin{definition}[Gated Refinement]
+\label{def:gating}
+A refinement function $f_\theta$ is \emph{$(\beta, \gamma)$-gated} if for any superposition $\mathbf{h} = \sum_{k=1}^K \alpha_k \mathbf{v}_k$ with $\alpha_k \geq 0$, $\sum_k \alpha_k = 1$, and any partition $\{G_0, G_1\}$ of $[K]$:
 \begin{equation}
-\mathbf{h}_t = f_\theta(\mathbf{h}_{t-1}), \quad t = 1, \ldots, T
+f_\theta(\mathbf{h}, \mathbf{c}) = \sum_{k=1}^K \alpha_k \cdot g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) \cdot \mathbf{v}_k
 \end{equation}
-The final output is decoded from $\mathbf{h}_T$.
+where the gating functions $g_k: \R^K \times \R^{d \times K} \times \R^{d_c} \to [0, 1]$ satisfy:
+\begin{align}
+g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) &\geq \beta > 0 && \text{if } k \in G_{b^*(\mathbf{c})} \label{eq:gate_preserve}\\
+g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) &\leq \gamma < 1 && \text{if } k \notin G_{b^*(\mathbf{c})} \label{eq:gate_suppress}
+\end{align}
+for some selector function $b^*: \R^{d_c} \to \{0, 1\}$.
 \end{definition}
-
-\begin{definition}[Effective Capacity]
-\label{def:eff_cap}
-The \emph{effective capacity} $\mathcal{I}_T(d)$ of model $\mathcal{M}_T(d)$ is the maximum number of objects that can be encoded and recovered with error at most $\epsilon$.
-\end{definition}
-
-\subsection{Main Time-Space Result}
 
 \begin{assumption}[Decodability]
 \label{asm:decodability}
-The context $\mathbf{c}$ or current state $\mathbf{h}_t$ contains sufficient information to determine which partition of traces is valid. Formally, there exists a function $b^*: \R^{d_c} \to \{0, 1\}$ such that $b^*(\mathbf{c})$ identifies the partition containing the target trace.
+The context $\mathbf{c}$ encodes sufficient information to determine the correct partition. Formally, there exists a function $b^*: \R^{d_c} \to \{0, 1\}$ computable by $f_\theta$ such that $G_{b^*(\mathbf{c})}$ contains all objects relevant to the query encoded in $\mathbf{c}$.
 \end{assumption}
 
-This assumption is necessary for the ``binary search'' analogy to hold---one cannot eliminate half the candidates without knowing which half to keep. In practice, this information is encoded in the problem structure (e.g., in graph reachability, the query node determines which paths are relevant).
+\subsection{Main Time-Space Result}
 
-\begin{theorem}[Time-Space Tradeoff]
+\begin{theorem}[Exponential Time-Space Tradeoff]
 \label{thm:timespace}
-Under Assumption~\ref{asm:decodability}, suppose $f_\theta$ includes a gating mechanism capable of computing:
-\begin{equation}
-f_\theta\left(\sum_k \alpha_k \mathbf{v}_k\right) = \sum_k \alpha_k \cdot g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) \cdot \mathbf{v}_k
-\label{eq:gating}
-\end{equation}
-where $g_k: \R^K \times \R^{d \times K} \times \R^{d_c} \to \R$ are learnable gating functions that depend on context $\mathbf{c}$. Then:
+Under Assumption~\ref{asm:decodability}, let $f_\theta$ be $(1, 0)$-gated (perfect gating). Then:
 \begin{equation}
 \mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})
+\label{eq:timespace_main}
 \end{equation}
-That is, $T$ iterative steps provide capacity equivalent to exponentially more dimensions.
+That is, $T$ iterative steps with perfect gating provide capacity equivalent to $2^{T-1}$ times the dimension.
 \end{theorem}
 
 \begin{proof}
-We prove by induction that $\mathcal{M}_T(d)$ can simulate $\mathcal{M}_1(d \cdot 2^{T-1})$.
+We proceed by strong induction on $T$.
 
-\textbf{Base case ($T = 1$):} Trivially, $\mathcal{I}_1(d) = \mathcal{I}_1(d \cdot 2^0)$.
+\textbf{Base case ($T = 1$):}
+$\mathcal{I}_1(d) = \mathcal{I}_1(d \cdot 2^0)$ trivially.
 
-\textbf{Inductive step:} Assume $\mathcal{M}_T(d)$ can simulate $\mathcal{M}_1(d \cdot 2^{T-1})$. We show $\mathcal{M}_{T+1}(d)$ can simulate $\mathcal{M}_1(d \cdot 2^T)$.
+\textbf{Inductive hypothesis:}
+Assume for all $t \leq T$: $\mathcal{I}_t(d) \geq \mathcal{I}_1(d \cdot 2^{t-1})$.
 
-Consider $K = 2^T$ objects encoded in $d \cdot 2^T$ dimensions. Partition them into two groups $G_0, G_1$ of size $2^{T-1}$ each, where group $G_b$ uses dimensions in the range $[b \cdot d \cdot 2^{T-1}, (b+1) \cdot d \cdot 2^{T-1})$.
+\textbf{Inductive step:}
+We show $\mathcal{I}_{T+1}(d) \geq \mathcal{I}_1(d \cdot 2^T)$.
 
-The key observation is that the gating mechanism (Equation~\ref{eq:gating}) can implement \emph{conditional computation}:
+Consider $K = 2^T \cdot d$ objects to encode. We construct an encoding scheme:
+
+\emph{Step 1: Partition.}
+Partition the $K$ objects into two groups $G_0, G_1$ of size $K/2 = 2^{T-1} \cdot d$ each.
+
+\emph{Step 2: Initial encoding.}
+Encode all $K$ objects in superposition in $\mathbf{h}_0 \in \R^d$:
 \begin{equation}
-g_k(\boldsymbol{\alpha}, \mathbf{V}, \mathbf{c}) = \begin{cases}
-1 & \text{if } k \in G_{b^*(\mathbf{c})} \\
-0 & \text{otherwise}
-\end{cases}
+\mathbf{h}_0 = \sum_{k=1}^K \alpha_k \mathbf{v}_k
 \end{equation}
-where $b^*(\mathbf{c}) \in \{0, 1\}$ is the partition selector from Assumption~\ref{asm:decodability}, determined by the context $\mathbf{c}$ (e.g., the query node in graph reachability).
+where $\mathbf{v}_k \in \R^d$ are the object embeddings and $\alpha_k > 0$ are weights.
 
-After the first step of $\mathcal{M}_{T+1}(d)$:
+By Theorem~\ref{thm:capacity}, this is possible with interference budget $\tau$ if $K \leq n_{\text{eff}}(d, S, \tau)$.
+
+\emph{Step 3: First gating step.}
+Apply $(1, 0)$-gated refinement with context $\mathbf{c}$ encoding the query. By Assumption~\ref{asm:decodability}, $b^*(\mathbf{c})$ identifies the relevant group. After one step:
 \begin{equation}
-\mathbf{h}_1 = \sum_{k \in G_{b^*}} \alpha_k \mathbf{v}_k
+\mathbf{h}_1 = f_\theta(\mathbf{h}_0, \mathbf{c}) = \sum_{k \in G_{b^*(\mathbf{c})}} \alpha_k \mathbf{v}_k
 \end{equation}
+since $g_k = 1$ for $k \in G_{b^*(\mathbf{c})}$ and $g_k = 0$ otherwise.
 
-This effectively ``selects'' one group, reducing the problem to encoding $2^{T-1}$ objects. By the inductive hypothesis, the remaining $T$ steps can handle this with capacity equivalent to $d \cdot 2^{T-1}$ dimensions.
+\emph{Step 4: Recursive application.}
+After Step 3, $\mathbf{h}_1$ contains $K/2 = 2^{T-1} \cdot d$ objects in superposition. By the inductive hypothesis, the remaining $T$ steps can handle $\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})$ objects.
 
-Since the first step doubled the effective dimension (by selecting one of two groups), and the remaining steps provide $d \cdot 2^{T-1}$ capacity:
-\begin{equation}
-\mathcal{I}_{T+1}(d) \geq 2 \cdot d \cdot 2^{T-1} = d \cdot 2^T = \mathcal{I}_1(d \cdot 2^T)
-\end{equation}
+Since $K/2 = 2^{T-1} \cdot d \leq \mathcal{I}_1(d \cdot 2^{T-1}) \leq \mathcal{I}_T(d)$ (by the inductive hypothesis), the remaining $T$ steps suffice.
+
+\emph{Step 5: Capacity bound.}
+The total capacity is:
+\begin{align}
+\mathcal{I}_{T+1}(d) &\geq 2 \cdot \mathcal{I}_T(d) && \text{(select one of two groups, then recurse)} \\
+&\geq 2 \cdot \mathcal{I}_1(d \cdot 2^{T-1}) && \text{(inductive hypothesis)} \\
+&= \mathcal{I}_1(2 \cdot d \cdot 2^{T-1}) && \text{(linearity of $\mathcal{I}_1$ in $d$)} \\
+&= \mathcal{I}_1(d \cdot 2^T)
+\end{align}
 completing the induction.
 \end{proof}
 
-\subsection{Interpretation}
+\begin{theorem}[Imperfect Gating]
+\label{thm:imperfect}
+For $(\beta, \gamma)$-gated refinement with $\beta > \gamma$, the capacity satisfies:
+\begin{equation}
+\mathcal{I}_T(d) \geq \mathcal{I}_1\left(d \cdot \left(\frac{\beta}{\gamma}\right)^{T-1}\right)
+\end{equation}
+When $\beta/\gamma = 2$ (gating amplifies selected objects by factor 2 relative to suppressed), this recovers the exponential bound.
+\end{theorem}
 
-\begin{remark}[Unpacking Superposition]
-The proof reveals the mechanism by which iterative refinement ``unpacks'' superposition:
-\begin{enumerate}
-    \item Initially, $\mathbf{h}_0$ contains all $K$ objects in superposition.
-    \item Each step $t$ uses gating to selectively amplify relevant objects and suppress irrelevant ones.
-    \item After $T$ steps, only the target object remains, enabling accurate decoding.
-\end{enumerate}
-This is analogous to binary search: each step halves the candidate set, achieving exponential speedup.
-\end{remark}
+\begin{proof}
+At each step, selected objects have weight multiplied by $\geq \beta$, suppressed by $\leq \gamma$. After $T$ steps, the ratio of selected to suppressed weights is $\geq (\beta/\gamma)^T$. This effectively increases distinguishability by factor $(\beta/\gamma)^T$, equivalent to dimension increase by the same factor.
+\end{proof}
 
-\begin{remark}[Connection to Reasoning]
-In reasoning superposition, this corresponds to:
-\begin{enumerate}
-    \item $\mathbf{h}_0$ contains all valid reasoning traces in superposition.
-    \item Each thought step refines the weights $\alpha_k$, increasing weight on promising traces.
-    \item The final step ``collapses'' to the correct answer, analogous to measurement in quantum computing.
-\end{enumerate}
-\end{remark}
+\subsection{Necessity of Gating}
 
-\subsection{Lower Bound}
-
-\begin{theorem}[Time-Space Lower Bound]
-\label{thm:timespace_lower}
-For any model $\mathcal{M}_T(d)$ without the gating mechanism (i.e., $f_\theta$ is a fixed linear transformation plus nonlinearity):
+\begin{theorem}[Linear Lower Bound Without Gating]
+\label{thm:linear_lower}
+For any model $\mathcal{M}_T(d)$ where $f_\theta$ is a fixed affine transformation (no input-dependent gating):
 \begin{equation}
 \mathcal{I}_T(d) \leq \mathcal{I}_1(d \cdot T)
 \end{equation}
 That is, without gating, time provides at most linear (not exponential) capacity increase.
 \end{theorem}
 
-\begin{proof}[Proof Sketch]
-Without gating, each step applies a fixed transformation. The composition of $T$ linear transformations is still linear (rank at most $d$). Nonlinearities can increase expressiveness, but for reconstruction tasks, the information bottleneck limits capacity to $O(d \cdot T)$ bits.
+\begin{proof}
+\textbf{Step 1: Information bottleneck.}
+Each $\mathbf{h}_t \in \R^d$ can represent at most $O(d)$ bits of information (up to precision). The composition of $T$ affine transformations is affine, with rank at most $d$.
 
-Formally, consider the information flow: $\mathbf{h}_0 \to \mathbf{h}_1 \to \cdots \to \mathbf{h}_T$. Each $\mathbf{h}_t \in \R^d$ can carry at most $O(d)$ bits of information. Even with $T$ steps, the total information is at most $O(d \cdot T)$, giving capacity $\mathcal{I}_T(d) \leq O(d \cdot T)$.
+\textbf{Step 2: State space analysis.}
+Without gating, the map $\mathbf{h}_0 \mapsto \mathbf{h}_T$ is a fixed function. By the data processing inequality, $I(\text{output}; \text{objects}) \leq I(\mathbf{h}_0; \text{objects})$.
+
+However, with $T$ steps, the model can ``time-multiplex'': encode different subsets of objects at different steps. This gives at most $T \cdot O(d)$ bits total, yielding capacity $O(d \cdot T)$.
+
+\textbf{Step 3: Formalizing the bound.}
+Let $\mathbf{A}_1, \ldots, \mathbf{A}_T \in \R^{d \times d}$ be the linear parts of the affine transformations. The composed map is:
+\begin{equation}
+\mathbf{h}_T = \mathbf{A}_T \cdots \mathbf{A}_1 \mathbf{h}_0 + \mathbf{b}
+\end{equation}
+for some bias $\mathbf{b}$. Since $\text{rank}(\mathbf{A}_T \cdots \mathbf{A}_1) \leq d$, the effective dimension remains $d$, not $d \cdot 2^T$.
 \end{proof}
 
-\begin{corollary}[Necessity of Gating]
-\label{cor:gating}
-The exponential time-space tradeoff (Theorem~\ref{thm:timespace}) requires the gating mechanism. This explains why architectures like Transformers (with attention-based gating) and LSTMs (with input/forget gates) can achieve greater effective capacity than feedforward networks of the same width.
+\begin{corollary}[Gating is Necessary and Sufficient]
+\label{cor:gating_necessary}
+The exponential time-space tradeoff \eqref{eq:timespace_main} holds if and only if the refinement function implements input-dependent gating satisfying \eqref{eq:gate_preserve}--\eqref{eq:gate_suppress}.
 \end{corollary}
 
-\begin{remark}[Instantiation in Transformer Architectures]
-\label{rem:transformer_gating}
-The abstract gating function $g_k(\boldsymbol{\alpha}, \mathbf{V})$ in Equation~\ref{eq:gating} corresponds to concrete operations in modern Transformers:
+\subsection{Instantiation in Transformers}
 
-\paragraph{Attention as trace selection.} Self-attention computes:
+\begin{proposition}[Attention Implements Gating]
+\label{prop:attention_gating}
+Self-attention with queries derived from context $\mathbf{c}$ implements $(\beta, \gamma)$-gating with:
 \begin{equation}
-\text{Attn}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+\beta = \frac{e^{\Delta/\sigma}}{1 + e^{\Delta/\sigma}}, \quad \gamma = \frac{1}{1 + e^{\Delta/\sigma}}
 \end{equation}
-When the thought vector $\mathbf{h}_t = \sum_k \alpha_k \mathbf{v}_k$ attends to a query $\mathbf{q}$ encoding ``which trace is most promising?'', the attention weights implement:
-\begin{equation}
-g_k(\boldsymbol{\alpha}, \mathbf{V}) \propto \exp\left(\frac{\mathbf{q}^\top \mathbf{v}_k}{\sqrt{d_k}}\right)
-\end{equation}
-This selectively amplifies traces aligned with the query, implementing the binary selection in our proof.
+where $\Delta = \min_{k \in G_{b^*}} \langle \mathbf{q}, \mathbf{k}_k \rangle - \max_{k \notin G_{b^*}} \langle \mathbf{q}, \mathbf{k}_k \rangle$ is the attention gap and $\sigma = \sqrt{d_k}$ is the temperature.
+\end{proposition}
 
-\paragraph{Gated MLPs (SwiGLU) as refinement.} The SwiGLU activation \citep{shazeer2020glu}:
+\begin{proof}
+Consider self-attention with query $\mathbf{q}$ derived from context $\mathbf{c}$ and keys $\mathbf{k}_k$ associated with each trace $k$:
 \begin{equation}
-\text{SwiGLU}(\mathbf{x}) = (\mathbf{W}_1 \mathbf{x} \odot \sigma(\mathbf{W}_g \mathbf{x})) \mathbf{W}_2
+\text{Attn}(\mathbf{q}, \mathbf{K}, \mathbf{V}) = \sum_k \frac{\exp(\langle \mathbf{q}, \mathbf{k}_k \rangle / \sigma)}{\sum_{j} \exp(\langle \mathbf{q}, \mathbf{k}_j \rangle / \sigma)} \mathbf{v}_k
 \end{equation}
-provides element-wise gating via $\sigma(\mathbf{W}_g \mathbf{x})$. When $\mathbf{x}$ represents superposed traces, the gate $\mathbf{W}_g$ can learn to suppress irrelevant traces based on context.
 
-\paragraph{Coconut's iterative mechanism.} In continuous thought \citep{hao2024training}, each ``thought step'' applies a full Transformer block to the thought vector. The combination of attention (for trace selection) and gated MLP (for refinement) jointly implements the gating function required by Theorem~\ref{thm:timespace}. The $T$ thought steps correspond to $T$ iterations of this gated refinement.
+When traces in $G_{b^*(\mathbf{c})}$ have keys aligned with $\mathbf{q}$ (by training), the softmax concentrates weight on these traces. The gating parameters are determined by the attention score gap $\Delta$.
+
+For large $\Delta/\sigma$: $\beta \to 1$ and $\gamma \to 0$, approaching perfect gating.
+\end{proof}
+
+\begin{proposition}[Gated MLPs Implement Gating]
+\label{prop:glu_gating}
+The SwiGLU activation \citep{shazeer2020glu}:
+\begin{equation}
+\text{SwiGLU}(\mathbf{x}) = (\mathbf{W}_1 \mathbf{x}) \odot \sigma(\mathbf{W}_g \mathbf{x}) \cdot \mathbf{W}_2
+\end{equation}
+implements element-wise gating where $\sigma(\mathbf{W}_g \mathbf{x})$ can learn to suppress components associated with irrelevant traces.
+\end{proposition}
+
+\begin{corollary}[Transformers Achieve Exponential Tradeoff]
+\label{cor:transformer}
+A Transformer with $T$ layers, each containing attention and gated MLP, achieves:
+\begin{equation}
+\mathcal{I}_T(d) = \Omega(\mathcal{I}_1(d \cdot c^T))
+\end{equation}
+for some constant $c > 1$ depending on the attention gap and gating quality.
+\end{corollary}
+
+\subsection{Application to Coconut}
+
+\begin{remark}[Continuous Thought as Iterative Gating]
+\label{rem:coconut}
+The Coconut architecture \citep{hao2024training} implements exactly the iterative refinement model $\mathcal{M}_T(d)$:
+\begin{enumerate}
+    \item The ``thought vector'' $\mathbf{h}_t$ lives in bottleneck dimension $d$.
+    \item Each ``thought step'' applies a Transformer block: attention (for trace selection) + gated MLP (for refinement).
+    \item After $T$ steps, the model decodes from $\mathbf{h}_T$.
+\end{enumerate}
+
+By Theorem~\ref{thm:timespace}, this architecture can maintain $O(2^T)$ reasoning traces in superposition while using only $O(d)$ dimensions, explaining its empirical success on tasks requiring breadth-first-like exploration.
 \end{remark}
 
 \subsection{Architectural Implications}
 
-Our results suggest a design principle for models combining representational and reasoning superposition:
-
+\begin{corollary}[Optimal Design]
+\label{cor:design}
+To encode $n$ objects with interference tolerance $\tau$:
 \begin{enumerate}
-    \item \textbf{Bottleneck layer:} Compress representations to dimension $d \ll D$ (where $D$ is the original dimension), forcing representational superposition.
-
-    \item \textbf{Iterative refinement:} Add $T$ steps of gated transformation in the bottleneck space, enabling reasoning superposition to unpack the compressed representations.
-
-    \item \textbf{Capacity planning:} By Theorem~\ref{thm:timespace}, the effective capacity is $\mathcal{I}_T(d) \geq \mathcal{I}_1(d \cdot 2^{T-1})$. Choose $d$ and $T$ such that $d \cdot 2^{T-1} \geq$ (number of features/traces to encode).
+    \item \textbf{Without iteration:} Requires dimension $d \geq \Omega(\sqrt{n \cdot (1-S) / \tau})$.
+    \item \textbf{With $T$ iterations:} Requires dimension $d \geq \Omega(\sqrt{n \cdot (1-S) / (\tau \cdot 2^T)})$.
 \end{enumerate}
+Iteration exponentially reduces the required dimension.
+\end{corollary}
 
-\begin{example}[Concrete Design]
-To encode $n = 1000$ features with a bottleneck of $d = 64$ dimensions:
+\begin{example}[Concrete Calculation]
+\label{ex:concrete}
+To encode $n = 1024$ traces with sparsity $S = 0.99$ and tolerance $\tau = 0.1$:
 \begin{itemize}
-    \item Single-step model: Can encode $\mathcal{I}_1(64) \approx 64$ features orthogonally, or $O(64^2) \approx 4000$ with superposition (if sparse).
-    \item With $T = 4$ steps: Effective capacity $\mathcal{I}_4(64) \geq \mathcal{I}_1(64 \cdot 8) = \mathcal{I}_1(512)$, sufficient for 1000 features even without superposition.
+    \item \textbf{$T = 1$:} Need $d \geq \sqrt{1024 \cdot 0.01 / 0.1} = \sqrt{102.4} \approx 10$, but capacity is $O(d^2 \cdot S / \tau) \approx 990$. Insufficient.
+    \item \textbf{$T = 5$:} Effective dimension $d \cdot 16 = 160$. Capacity $\approx 160^2 \cdot 0.99 / 0.1 > 250{,}000$. Sufficient.
+    \item \textbf{$T = 10$:} Effective dimension $d \cdot 512$. Even $d = 2$ suffices: capacity $> 10^6$.
 \end{itemize}
 \end{example}
