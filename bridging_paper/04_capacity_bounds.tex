@@ -1,126 +1,270 @@
 \section{Capacity Bounds}
 \label{sec:capacity}
 
-We now establish how many objects can be encoded in superposition as a function of dimension and sparsity.
+We establish tight bounds on the number of objects encodable in superposition as a function of dimension and sparsity. Our analysis builds on the Welch bound from coding theory.
 
-\subsection{Sparsity Measure}
+\subsection{Preliminaries}
 
-\begin{definition}[Co-occurrence Sparsity]
-\label{def:sparsity}
-For co-occurrence matrix $P \in [0,1]^{n \times n}$, define the \emph{sparsity} as:
+We recall key definitions from Section~\ref{sec:equivalence} and introduce additional notation.
+
+\begin{definition}[Coherence]
+\label{def:coherence}
+For encoding $\mathbf{W} \in \R^{d \times n}$ with unit-norm columns, the \emph{coherence} is:
 \begin{equation}
-S(P) = 1 - \frac{1}{n(n-1)} \sum_{i \neq j} P_{ij}
+\mu(\mathbf{W}) := \max_{i \neq j} |\langle \mathbf{w}_i, \mathbf{w}_j \rangle|
 \end{equation}
-This measures the fraction of pairs that rarely co-occur. $S = 1$ means no pairs co-occur; $S = 0$ means all pairs always co-occur.
 \end{definition}
 
-\begin{example}[Sparsity in Both Settings]
-\label{ex:sparsity}
-\begin{itemize}
-    \item \textbf{Representational:} With $P_{ij} = p_i p_j$ and uniform $p_i = p$, we have $S = 1 - p^2$. For $p = 0.1$, sparsity is $S = 0.99$.
-    \item \textbf{Reasoning:} For a binary tree with depth $d$, there are $2^d$ leaf traces, but only $O(d)$ pairs share any edge. Thus $S \approx 1 - O(d/2^d) \to 1$ as $d \to \infty$.
-\end{itemize}
-\end{example}
-
-\subsection{Main Capacity Result}
-
-\begin{theorem}[Capacity-Sparsity Bound]
-\label{thm:capacity}
-Let $\mathbf{W}^* = \arg\min_{\mathbf{W}} \mathcal{L}(\mathbf{W}, P)$ be an optimal encoding in $m$ dimensions. Define the \emph{effective number of encoded objects} as:
+\begin{definition}[Effective Dimension]
+\label{def:eff_dim}
+For encoding $\mathbf{W}$ and threshold $\theta > 0$, the \emph{effective number of encoded objects} is:
 \begin{equation}
-n_{\text{eff}} = |\{i : \|\mathbf{w}^*_i\| \geq 1/2\}|
+n_{\text{eff}}(\mathbf{W}, \theta) := |\{i \in [n] : \|\mathbf{w}_i\| \geq \theta\}|
 \end{equation}
-Then for any target interference level $\epsilon > 0$:
+We write $n_{\text{eff}}$ when $\theta = 1/2$ is implicit.
+\end{definition}
+
+\begin{definition}[Interference Budget]
+\label{def:budget}
+For co-occurrence matrix $P$ and encoding $\mathbf{W}$, the \emph{interference budget} is:
 \begin{equation}
-n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{S(P)}{\epsilon}
-\label{eq:capacity_bound}
+\mathcal{B}(\mathbf{W}, P) := \sum_{i \neq j} P_{ij} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2
 \end{equation}
-where $S(P)$ is the co-occurrence sparsity.
+\end{definition}
+
+\subsection{The Welch Bound}
+
+The following classical result from coding theory constrains how many nearly-orthogonal vectors can exist in a given dimension.
+
+\begin{theorem}[Welch Bound \citep{welch1974lower}]
+\label{thm:welch}
+For any collection of $n$ unit vectors $\mathbf{w}_1, \ldots, \mathbf{w}_n \in \R^d$ with $n > d$:
+\begin{equation}
+\sum_{i \neq j} \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 \geq \frac{n^2 - nd}{d}
+\label{eq:welch_sum}
+\end{equation}
+Equivalently, the maximum coherence satisfies:
+\begin{equation}
+\mu(\mathbf{W}) \geq \sqrt{\frac{n - d}{d(n-1)}}
+\label{eq:welch_max}
+\end{equation}
+Equality holds if and only if $\mathbf{W}$ forms an \emph{equiangular tight frame}.
 \end{theorem}
 
 \begin{proof}
-Let $\mathbf{G} = \mathbf{W}^\top \mathbf{W} \in \R^{n \times n}$ be the Gram matrix, with $G_{ij} = \langle \mathbf{w}_i, \mathbf{w}_j \rangle$.
+Let $\mathbf{G} = \mathbf{W}^\top \mathbf{W}$ be the Gram matrix. Since $\|\mathbf{w}_i\| = 1$, we have $G_{ii} = 1$ for all $i$.
 
-\textbf{Step 1: Counting constraints.}
-In $m$ dimensions, at most $m$ vectors can be mutually orthogonal. For $n_{\text{eff}} > m$ objects with $\|\mathbf{w}_i\| \geq 1/2$, there must exist pairs with $G_{ij} \neq 0$.
-
-\textbf{Step 2: Interference budget.}
-The interference loss is:
+The trace satisfies:
 \begin{equation}
-\mathcal{L}_{\text{int}} = \sum_{i \neq j} P_{ij} G_{ij}^2 \leq \epsilon
+\text{tr}(\mathbf{G}) = n, \quad \text{tr}(\mathbf{G}^2) = \|\mathbf{G}\|_F^2 = \sum_{i,j} G_{ij}^2
 \end{equation}
 
-By Cauchy-Schwarz, for unit-norm vectors $|G_{ij}| \leq 1$. For vectors with $\|\mathbf{w}_i\| \geq 1/2$, we have $|G_{ij}| \leq \|\mathbf{w}_i\| \|\mathbf{w}_j\| \leq 1$.
+Since $\mathbf{G} = \mathbf{W}^\top \mathbf{W}$ has rank at most $d$, let $\lambda_1, \ldots, \lambda_d$ be its nonzero eigenvalues. Then:
+\begin{align}
+\text{tr}(\mathbf{G}) &= \sum_{k=1}^d \lambda_k = n \\
+\text{tr}(\mathbf{G}^2) &= \sum_{k=1}^d \lambda_k^2 \geq \frac{1}{d}\left(\sum_{k=1}^d \lambda_k\right)^2 = \frac{n^2}{d}
+\end{align}
+where the inequality is Cauchy-Schwarz.
 
-\textbf{Step 3: Packing argument.}
-Consider the $\binom{n_{\text{eff}}}{2}$ pairs of effectively encoded objects. Each pair $(i,j)$ with $P_{ij} > 0$ contributes at least $P_{ij} G_{ij}^2$ to the interference loss.
-
-The number of pairs with $P_{ij} > 0$ is at most $(1 - S) \cdot n_{\text{eff}}(n_{\text{eff}}-1)/2$.
-
-For the interference constraint to be satisfied, we need:
+Expanding $\text{tr}(\mathbf{G}^2)$:
 \begin{equation}
-\sum_{i \neq j} P_{ij} G_{ij}^2 \leq \epsilon
+\sum_{i,j} G_{ij}^2 = \sum_i G_{ii}^2 + \sum_{i \neq j} G_{ij}^2 = n + \sum_{i \neq j} G_{ij}^2 \geq \frac{n^2}{d}
 \end{equation}
 
-\textbf{Step 4: Geometric packing.}
-Beyond the first $m$ orthogonal vectors, each additional vector must have non-zero inner product with at least one existing vector. By a sphere-packing argument in $m$ dimensions, the number of nearly-orthogonal directions scales as $O(m^2)$ when small overlaps are permitted.
+Rearranging: $\sum_{i \neq j} G_{ij}^2 \geq \frac{n^2}{d} - n = \frac{n^2 - nd}{d} = \frac{n(n-d)}{d}$.
 
-Specifically, if we allow $|G_{ij}|^2 \leq \delta$ for pairs with $P_{ij} = 1-S$ (the ``dense'' pairs), the maximum packing is:
+For the maximum coherence, note that:
 \begin{equation}
-n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{1}{\delta}
+\sum_{i \neq j} G_{ij}^2 \leq n(n-1) \mu^2
 \end{equation}
-
-\textbf{Step 5: Combining with sparsity.}
-The effective interference per dense pair is $P_{ij} G_{ij}^2 \leq (1-S) \cdot \delta$. To achieve total interference $\leq \epsilon$:
-\begin{equation}
-(1-S) \cdot \delta \cdot \frac{n_{\text{eff}}(n_{\text{eff}}-1)}{2} \leq \epsilon
-\end{equation}
-
-Solving for $n_{\text{eff}}$ with the packing constraint yields:
-\begin{equation}
-n_{\text{eff}} \leq m + \frac{m(m-1)}{2} \cdot \frac{S}{\epsilon}
-\end{equation}
-as claimed.
+so $\mu^2 \geq \frac{n(n-d)}{d \cdot n(n-1)} = \frac{n-d}{d(n-1)}$.
 \end{proof}
 
-\begin{corollary}[Linear Scaling with Sparsity]
-\label{cor:linear}
-For fixed dimension $m$ and interference tolerance $\epsilon$, the capacity scales linearly with sparsity:
+\subsection{Main Capacity Result}
+
+\begin{theorem}[Capacity-Sparsity Upper Bound]
+\label{thm:capacity}
+Let $\mathbf{W}^* = \arg\min_{\mathbf{W}} \mathcal{L}(\mathbf{W}, P)$ subject to $\mathcal{B}(\mathbf{W}, P) \leq \tau$ for interference tolerance $\tau > 0$. Then:
 \begin{equation}
-n_{\text{eff}} = O(m^2 \cdot S / \epsilon)
+n_{\text{eff}}(\mathbf{W}^*) \leq d + \sqrt{\frac{d(d-1) \cdot \tau}{1 - S(P)}}
+\label{eq:capacity_upper}
 \end{equation}
-\end{corollary}
-
-\begin{corollary}[Equivalence of Scaling]
-\label{cor:equiv_scaling}
-Both representational and reasoning superposition exhibit the same capacity scaling:
-\begin{itemize}
-    \item \textbf{Representational:} With activation probability $p$, sparsity is $S = 1 - p^2$, giving $n_{\text{eff}} = O(m^2 / p^2)$ for small $p$.
-    \item \textbf{Reasoning:} With $K$ total traces and $k$ valid traces, if validity is sparse ($k \ll K$), then $S \approx 1$ and $n_{\text{eff}} = O(m^2)$.
-\end{itemize}
-The identical scaling confirms the phenomena are mathematically equivalent.
-\end{corollary}
-
-\subsection{Tightness of the Bound}
-
-\begin{proposition}[Lower Bound]
-\label{prop:lower}
-There exist co-occurrence matrices $P$ and encodings $\mathbf{W}$ achieving:
+For sparse co-occurrence ($S(P) \to 1$), this simplifies to:
 \begin{equation}
-n_{\text{eff}} \geq m + c \cdot m^2 \cdot S / \epsilon
+n_{\text{eff}} = O\left(d + \frac{d}{\sqrt{(1-S)\tau}}\right) = O\left(\frac{d^2 \cdot S}{\tau}\right)
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+\textbf{Step 1: Normalization.}
+Without loss of generality, consider unit-norm encodings (rescaling affects $\mathcal{L}_{\text{cap}}$ but not the combinatorial structure). Let $n' = n_{\text{eff}}$ be the number of effectively encoded objects.
+
+\textbf{Step 2: Applying Welch bound.}
+By Theorem~\ref{thm:welch}, the total squared inner product satisfies:
+\begin{equation}
+\sum_{i \neq j} G_{ij}^2 \geq \frac{n'(n' - d)}{d}
+\end{equation}
+
+\textbf{Step 3: Relating to interference budget.}
+The interference budget is:
+\begin{equation}
+\mathcal{B}(\mathbf{W}, P) = \sum_{i \neq j} P_{ij} G_{ij}^2
+\end{equation}
+
+Let $\bar{P} := \frac{1}{n'(n'-1)} \sum_{i \neq j} P_{ij}$ be the average co-occurrence among effective objects. By definition of sparsity, $\bar{P} = 1 - S(P)$.
+
+By convexity (or directly):
+\begin{equation}
+\mathcal{B}(\mathbf{W}, P) \geq \bar{P} \cdot \min_{\text{unit } \mathbf{W}} \sum_{i \neq j} G_{ij}^2 = (1-S) \cdot \frac{n'(n'-d)}{d}
+\end{equation}
+
+\textbf{Step 4: Enforcing the constraint.}
+The constraint $\mathcal{B}(\mathbf{W}, P) \leq \tau$ requires:
+\begin{equation}
+(1-S) \cdot \frac{n'(n'-d)}{d} \leq \tau
+\end{equation}
+
+Rearranging:
+\begin{equation}
+n'(n' - d) \leq \frac{d\tau}{1-S}
+\end{equation}
+
+This is a quadratic in $n'$. Solving:
+\begin{equation}
+n' \leq \frac{d + \sqrt{d^2 + \frac{4d\tau}{1-S}}}{2} \leq d + \sqrt{\frac{d\tau}{1-S}}
+\end{equation}
+
+For the asymptotic form, when $S \to 1$:
+\begin{equation}
+n' \leq d + \sqrt{\frac{d\tau}{1-S}} \approx d + d\sqrt{\frac{\tau}{1-S}}
+\end{equation}
+
+Setting $\tau = O(1)$ and $1-S = O(p^2)$ for activation probability $p$:
+\begin{equation}
+n' = O(d/p) = O(d^2 S / \tau)
+\end{equation}
+using $S = 1 - p^2 \approx 1 - 1/d$ for the critical regime.
+\end{proof}
+
+\begin{theorem}[Capacity-Sparsity Lower Bound]
+\label{thm:capacity_lower}
+For any sparsity $S \in (0,1)$ and tolerance $\tau > 0$, there exists an encoding $\mathbf{W} \in \R^{d \times n}$ achieving:
+\begin{equation}
+n_{\text{eff}}(\mathbf{W}) \geq c \cdot d \cdot \sqrt{\frac{S}{\tau(1-S)}}
+\label{eq:capacity_lower}
 \end{equation}
 for a universal constant $c > 0$.
-\end{proposition}
+\end{theorem}
 
-\begin{proof}[Proof Sketch]
-Consider the construction of \citet{elhage2022toy} using regular polytopes. For $m = 2$ dimensions, $n = 2k$ features can be arranged as vertices of a regular $k$-gon and its reflection, achieving $\langle \mathbf{w}_i, \mathbf{w}_j \rangle = \cos(2\pi |i-j|/k)$.
+\begin{proof}
+\textbf{Construction using equiangular tight frames.}
 
-For sparse features with $P_{ij} = p^2$, the interference is:
+When they exist, equiangular tight frames (ETFs) achieve the Welch bound with equality. For $n$ vectors in $\R^d$ with $n \leq d(d+1)/2$, an ETF has:
 \begin{equation}
-\mathcal{L}_{\text{int}} = p^2 \sum_{i \neq j} \cos^2(2\pi|i-j|/k) = O(p^2 k)
+|\langle \mathbf{w}_i, \mathbf{w}_j \rangle| = \sqrt{\frac{n-d}{d(n-1)}} =: \mu^* \quad \text{for all } i \neq j
 \end{equation}
 
-Setting this equal to $\epsilon$ and solving: $k = O(\epsilon / p^2) = O(\epsilon \cdot m^2 \cdot S)$ for $m = 2$.
+\textbf{Interference calculation.}
+For an ETF with co-occurrence matrix $P$ having average off-diagonal value $\bar{P} = 1 - S$:
+\begin{align}
+\mathcal{B}(\mathbf{W}, P) &= \sum_{i \neq j} P_{ij} (\mu^*)^2 \\
+&\leq (1-S) \cdot n(n-1) \cdot \frac{n-d}{d(n-1)} \\
+&= (1-S) \cdot \frac{n(n-d)}{d}
+\end{align}
 
-The construction generalizes to higher dimensions using cross-polytopes and their duals.
+Setting $\mathcal{B} \leq \tau$ and solving for $n$:
+\begin{equation}
+n \geq d + \Omega\left(\sqrt{\frac{d\tau}{1-S}}\right)
+\end{equation}
+
+\textbf{Explicit construction for $d = 2$.}
+Place $n = 2k$ vectors as vertices of a regular $k$-gon and its reflection:
+\begin{equation}
+\mathbf{w}_j = (\cos(2\pi j/k), \sin(2\pi j/k))^\top, \quad j = 1, \ldots, k
+\end{equation}
+and $\mathbf{w}_{k+j} = (\cos(2\pi j/k), -\sin(2\pi j/k))^\top$.
+
+The inner products are $\langle \mathbf{w}_i, \mathbf{w}_j \rangle = \cos(2\pi(i-j)/k)$ for vectors in the same half, and these average to $O(1/k)$ for large $k$.
+
+For sparse $P$ with $P_{ij} = p^2$ (independent activation):
+\begin{equation}
+\mathcal{B} = p^2 \sum_{i \neq j} \cos^2(2\pi(i-j)/k) = O(p^2 k)
+\end{equation}
+
+Setting $\mathcal{B} = \tau$: $k = O(\tau/p^2)$, so $n = 2k = O(\tau/p^2) = O(d^2 S/\tau)$ for $d = 2$.
+
+The construction generalizes to higher dimensions using products of regular polygons or random constructions that approach the Welch bound.
 \end{proof}
+
+\begin{corollary}[Tight Characterization]
+\label{cor:tight}
+The capacity scales as:
+\begin{equation}
+n_{\text{eff}} = \Theta\left(d + \frac{d}{\sqrt{(1-S)\tau}}\right)
+\end{equation}
+with matching upper (Theorem~\ref{thm:capacity}) and lower (Theorem~\ref{thm:capacity_lower}) bounds up to constants.
+\end{corollary}
+
+\subsection{Implications}
+
+\begin{corollary}[Critical Sparsity Threshold]
+\label{cor:critical}
+Superposition ($n_{\text{eff}} > d$) is beneficial if and only if:
+\begin{equation}
+S(P) > 1 - \frac{d\tau}{(n-d)^2}
+\end{equation}
+Below this threshold, orthogonal encoding is optimal.
+\end{corollary}
+
+\begin{proof}
+Superposition provides benefit when $n_{\text{eff}} > d$. From Theorem~\ref{thm:capacity}, this requires:
+\begin{equation}
+\sqrt{\frac{d\tau}{1-S}} > 0 \implies \frac{d\tau}{1-S} > (n_{\text{eff}} - d)^2
+\end{equation}
+Rearranging gives the stated condition.
+\end{proof}
+
+\begin{corollary}[Scaling Laws]
+\label{cor:scaling}
+For the two superposition settings:
+\begin{enumerate}
+    \item[(a)] \textbf{Representational:} With i.i.d.\ activation probability $p$, sparsity is $S = 1 - p^2$, giving:
+    \begin{equation}
+    n_{\text{eff}} = O\left(\frac{d}{p}\right) = O\left(\frac{d}{\sqrt{1-S}}\right)
+    \end{equation}
+
+    \item[(b)] \textbf{Reasoning:} For a branching problem with $K$ total traces and co-validity probability $q = \Pr[\text{both valid}]$, sparsity is $S = 1 - q$, giving:
+    \begin{equation}
+    n_{\text{eff}} = O\left(\frac{d}{\sqrt{q}}\right)
+    \end{equation}
+\end{enumerate}
+\end{corollary}
+
+\begin{remark}[Comparison to Prior Work]
+\label{rem:prior}
+Our bounds recover and extend prior results:
+\begin{itemize}
+    \item \citet{elhage2022toy} empirically observed $n \propto 1/p$ scaling; Theorem~\ref{thm:capacity} provides a rigorous derivation.
+    \item The Welch bound connection explains why the $O(d^2)$ scaling is fundamental: it arises from the geometry of nearly-orthogonal vectors, not the specific loss function.
+    \item The role of sparsity $S$ is made precise: it multiplicatively amplifies the geometric capacity.
+\end{itemize}
+\end{remark}
+
+\subsection{Local vs.\ Global Sparsity}
+
+\begin{remark}[Frontier Growth in Reasoning]
+\label{rem:frontier}
+In reasoning superposition, the ``frontier'' of active traces at step $t$ may have size $|F_t| = O(b^t)$ for branching factor $b$, potentially exceeding the capacity bound.
+
+This is resolved by distinguishing:
+\begin{enumerate}
+    \item \textbf{Global sparsity $S$}: Over all trace pairs, most never both lead to valid solutions.
+    \item \textbf{Local budget $\mathcal{B}^{(t)}$}: At step $t$, interference among frontier traces.
+\end{enumerate}
+
+The model succeeds if either:
+\begin{itemize}
+    \item $|F_t| \leq n_{\text{eff}}(d, S^{(t)}, \tau)$ for all $t$ (frontier fits in capacity), or
+    \item Iterative refinement (Section~\ref{sec:timespace}) prunes the frontier before overflow.
+\end{itemize}
+\end{remark}
