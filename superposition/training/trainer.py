@@ -314,6 +314,8 @@ class Trainer:
                             )
                             batch_losses.append(outputs.loss)
                         except Exception as e:
+                            if i < 5:  # Log first few errors for debugging
+                                logger.debug(f"Batch processing error: {e}")
                             continue
 
                     if batch_losses:
@@ -335,8 +337,11 @@ class Trainer:
 
             if is_main_process():
                 pbar.close()
-                logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
-                metrics["epoch_losses"].append(running_loss)
+                if running_loss is not None:
+                    logger.info(f"Epoch {epoch + 1} complete. Avg loss: {running_loss:.4f}")
+                    metrics["epoch_losses"].append(running_loss)
+                else:
+                    logger.warning(f"Epoch {epoch + 1} complete. No valid batches processed.")
 
             if self.is_distributed:
                 dist.barrier()
