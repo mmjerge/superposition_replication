@@ -1,0 +1,18 @@
+Python: /sfs/weka/scratch/mj6ux/Projects/superposition_replication/.venv/bin/python
+Python version: Python 3.11.6
+Torchrun: /sfs/weka/scratch/mj6ux/Projects/superposition_replication/.venv/bin/torchrun
+[2026-02-20 16:41:35] superposition.cli - INFO - Experiment: coconut_no_bottleneck
+[2026-02-20 16:41:35] superposition.cli - INFO - Model type: coconut
+[2026-02-20 16:41:35] superposition.cli - INFO - Device: cuda:0
+[2026-02-20 16:41:38] superposition.models.coconut - INFO - Loading base model: gpt2
+[2026-02-20 16:41:41] superposition.models.coconut - INFO - Added 4 special tokens
+[2026-02-20 16:41:41] superposition.models.coconut - INFO - No bottleneck (full dimensionality)
+[2026-02-20 16:41:41] superposition.models.coconut - INFO - Parameters: 124,442,880 trainable / 124,442,880 total
+[2026-02-20 16:41:42] superposition.training.trainer - INFO - Loading WikiText dataset for Coconut training...
+[2026-02-20 16:41:43] superposition.training.trainer - INFO - Starting Coconut training: 5 epochs, lr=0.0001
+[2026-02-20 16:42:36] superposition.training.trainer - WARNING - Epoch 1 complete. No valid batches processed.
+[2026-02-20 16:43:29] superposition.training.trainer - WARNING - Epoch 2 complete. No valid batches processed.
+[2026-02-20 16:44:21] superposition.training.trainer - WARNING - Epoch 3 complete. No valid batches processed.
+[2026-02-20 16:45:13] superposition.training.trainer - WARNING - Epoch 4 complete. No valid batches processed.
+[2026-02-20 16:46:05] superposition.training.trainer - WARNING - Epoch 5 complete. No valid batches processed.
+[2026-02-20 16:46:05] superposition.training.trainer - INFO - Saved checkpoint: checkpoints/coconut_no_bottleneck.pt
