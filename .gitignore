@@ -29,3 +29,7 @@ job_*.out
 # Large run artifacts (keep structure, ignore heavy files)
 runs/**/*.tsv
 runs/**/projector_config.pbtxt
+
+# Model checkpoints and wandb logs
+checkpoints/
+wandb/
