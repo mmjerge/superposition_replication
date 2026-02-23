@@ -4,43 +4,23 @@
 
 The GPT-2-style transformer exhibits clear superposition patterns when processing synthetic sparse features.
 
-\paragraph{Feature geometry (Figure~\ref{fig:transformer_features}).} We visualize feature embeddings from the input projection layer across multiple random instances. Despite different input patterns, features consistently arrange themselves with approximately uniform angular spacing---the same geometric organization observed in toy autoencoders. This suggests the transformer has learned to minimize interference by distributing features evenly in the representational space.
+\paragraph{Feature geometry (Figure~\ref{fig:transformer_features}).} We visualize the 128 feature directions from the input projection layer, projected onto two hidden dimensions. Features arrange themselves with approximately uniform angular spacing---the same geometric organization observed in toy autoencoders. This suggests the transformer has learned to minimize interference by distributing features evenly in the representational space.
 
-\paragraph{Effect of sparsity (Figure~\ref{fig:feature_analysis}).} The upper panels show feature norms (bar height) and polysemanticity (color intensity, green=low, yellow=high) for models trained with different sparsity levels. At low sparsity (0.070, features frequently active), the first $\sim$64 features (up to the hidden dimension, marked by dashed line) have high norms and low polysemanticity---they occupy dedicated dimensions. Features beyond this boundary have lower norms and higher polysemanticity, indicating superposition. At high sparsity (0.684, features rarely active), more features participate in superposition, with polysemanticity spread more evenly across features. The model exploits sparsity to represent more features.
-
-The lower panels show weight correlation matrices ($W^T W$), revealing feature interactions. Higher sparsity produces denser correlation patterns, indicating more feature sharing.
-
-\paragraph{Dimensional fractions (Figure~\ref{fig:geometric_analysis}).} We analyze what fraction of a dimension each feature occupies. Features cluster around theoretically significant fractions ($1/2$, $2/3$, $3/4$), as predicted by the original paper's analysis of optimal feature packing. This clustering becomes more pronounced at higher inverse sparsity (more superposition), suggesting systematic organization rather than random interference.
 
 % Figure for transformer features
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/transformer_features.png}
-    \caption{\textbf{Feature embeddings from the GPT-2-style transformer.} Each panel shows feature organization for a different input instance. Despite varying inputs, features maintain consistent geometric arrangements with approximately uniform angular spacing, demonstrating stable superposition patterns across the transformer architecture.}
+    \includegraphics[width=0.45\textwidth]{figures/transformer_features.png}
+    \caption{\textbf{Feature embeddings from the GPT-2-style transformer.} Each line shows one of 128 feature directions from the input projection layer, projected onto two hidden dimensions. Features exhibit approximately uniform angular spacing, the same geometric organization observed in toy autoencoders, demonstrating that the transformer distributes features to minimize pairwise interference.}
     \label{fig:transformer_features}
 \end{figure}
 
-% Figure for feature analysis
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{figures/interference_heatmap.png}
-    \caption{\textbf{Feature analysis across superposition models.} \textbf{Top two panels (Sparsity 0.070):} Low sparsity setting. Upper: Feature norms (bar height) and polysemanticity (color: green=low, yellow=high). The dashed vertical line marks the hidden dimension ($d=64$); features to the right must be superposed. Lower: Weight correlation matrix ($W^T W$) showing feature interactions. \textbf{Bottom two panels (Sparsity 0.684):} High sparsity setting shows more widespread superposition and denser correlations.}
-    \label{fig:feature_analysis}
-\end{figure*}
-
-% Figure for geometric analysis
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=\textwidth]{figures/phase_diagram.png}
-    \caption{\textbf{Geometric analysis of feature dimensionality.} Y-axis: fraction of a dimension occupied by each feature. X-axis: inverse sparsity ($1/S$). Horizontal reference lines indicate theoretically significant fractions ($1/2$, $2/3$, $3/4$, etc.) predicted by optimal packing theory. Points cluster around these fractions, with clustering becoming more pronounced at higher inverse sparsity (more superposition). Points colored by instance; horizontal jitter added for visibility.}
-    \label{fig:geometric_analysis}
-\end{figure}
 
 \subsection{Translation Model Results}
 
 The bottleneck translation model demonstrates that superposition enables practical performance under severe capacity constraints.
 
-\paragraph{Translation quality.} Despite compressing 512-dimensional encoder outputs to just 16 dimensions, the model achieves a BLEU score of 36.34 on newsdiscussdev2015-enfr, compared to 33.8 for the baseline model without bottleneck. The bottleneck did not impair---and slightly improved---translation quality, suggesting efficient information compression through superposition.
+\paragraph{Translation quality.} Despite compressing 512-dimensional encoder outputs to just 16 dimensions, the model achieves a BLEU score of 36.34 on newsdiscussdev2015-enfr, compared to 33.8 for the baseline model without bottleneck. The bottleneck did not impair---and slightly improved---translation quality. We attribute this modest improvement to a regularization effect: the information bottleneck forces the model to discard noise and retain only the most task-relevant features, similar to the compression benefit observed in variational and information-bottleneck methods \citep{tishby2000information}.
 
 \paragraph{Weight distribution.} The bottleneck layer weights exhibit a peaked distribution with symmetric tails, indicating the model learned structured, efficient encoding rather than random projections.
 
@@ -85,3 +65,5 @@ CO-$d32$ & Reas. & 768 & 32 & 24$\times$ & 0.711 & 0.142 & 42.2\% \\
 Several patterns emerge from this comparison. First, \textbf{compression ratio governs interference}: across architectures, higher $n/d$ consistently produces higher $\mu_{\max}$ and lower orthogonal fractions, holding for both toy models and practical language models alike. Second, \textbf{Coconut outperforms CT at every $d$}. At matched compression ratios, Coconut achieves 5--14\% more orthogonal pairs and 8--20\% lower $\mu_{\max}$ than CT, an advantage attributable to the iterative reasoning mechanism (Section~\ref{sec:timespace_empirical}).
 
 Perhaps more striking is that \textbf{large-$n$ models achieve dramatically better packing}. The translation model ($n=512$, $d=256$) achieves 85.4\% orthogonality at only 2$\times$ compression, far better than the toy model (10.0\% at 2.5$\times$). High-dimensional spaces offer exponentially more nearly-orthogonal directions, consistent with the $n_{\text{eff}} = O(d + d/\sqrt{1-S})$ scaling of Corollary~\ref{cor:capacity}. Taken together, these results demonstrate that \textbf{superposition is universal}: every model with $n > d$ exhibits non-trivial superposition, whether it is a toy autoencoder, a frozen translation model, a GPT-2 transformer, or an iterative reasoning architecture trained on natural language.
+
+The consistent emergence of superposition across these diverse architectures raises a natural question: is superposition limited to \emph{representational} settings---packing static features into limited dimensions---or does the same phenomenon extend to \emph{reasoning}, where models maintain multiple reasoning traces in latent space? We investigate this connection in the following sections.

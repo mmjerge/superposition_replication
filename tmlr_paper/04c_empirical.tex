@@ -132,14 +132,3 @@ The translation model ($n = 512$, $d = 256$, 2$\times$ compression) shows especi
     \label{fig:interference_comparison}
 \end{figure}
 
-\subsection{Limitations and Null Results}
-
-We report several results that did not match theoretical predictions or remain ambiguous.
-
-\paragraph{Welch bound is not approached.} The Welch ratio $\mu_{\max}/\mu_W$ ranges from 4.1 to 7.9 across all models (Table~\ref{tab:interference_metrics}), meaning empirical coherence is 4--8$\times$ the theoretical minimum. This suggests that language models optimize for task loss rather than minimal coherence, and the Welch bound provides only a loose lower bound on achievable interference in practice.
-
-\paragraph{Effective capacity ($n_{\text{eff}}$ at $\|\mathbf{w}_i\| \geq 0.5$) is near-zero for most models.} For all bottleneck models with $d < 256$, the number of features with $\|\mathbf{w}_i\| \geq 0.5$ is zero. Mean norms range from 0.12 (CO-$d32$) to 0.50 (CT-$d256$). The models distribute representational weight thinly across many features rather than concentrating it in a few---a form of ``soft superposition'' where many features participate weakly rather than a few participating strongly. The $n_{\text{eff}}$ metric at threshold 0.1 recovers nearly all 768 features for most models, confirming widespread but dilute participation.
-
-\paragraph{Coconut without bottleneck shows high interference.} The no-bottleneck Coconut baseline uses the full embedding matrix (50,261 vocabulary tokens $\times$ 768 dimensions) as its weight matrix. This produces $\mu_{\max} = 1.0$ and only 0.07\% near-orthogonal pairs, reflecting the structure of the learned embedding space rather than a bottleneck encoding. This model does not exhibit the clean superposition patterns of the bottleneck models, suggesting that the bottleneck itself---not just training on language---is what induces structured superposition geometry.
-
-\paragraph{Time-space multiplier is sub-exponential.} While Coconut consistently outperforms CT at matched dimensions, the effective capacity multiplier ($\sim$2--4$\times$) falls short of the $2^{T-1} = 8\times$ predicted under perfect gating. This suggests that the gating quality $\beta/\gamma$ in practical transformer attention is modest, closer to $\sqrt{2}$ than to 2.

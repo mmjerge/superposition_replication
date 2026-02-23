@@ -12,4 +12,6 @@ We acknowledge several limitations of this work.
 
 \paragraph{Effective capacity metric.} The $n_{\text{eff}}$ metric at threshold $\|\mathbf{w}_i\| \geq 0.5$ returns zero for most bottleneck models, as the models distribute representational weight thinly across features (mean norms 0.12--0.50). This ``soft superposition'' regime is not well-captured by the binary threshold assumed in Corollary~\ref{cor:capacity}, suggesting the need for continuous capacity measures.
 
+\paragraph{Bottleneck dependence.} The no-bottleneck Coconut baseline ($50{,}261 \times 768$ embedding matrix) produces $\mu_{\max} = 1.0$ and only 0.07\% near-orthogonal pairs, lacking the clean superposition geometry of bottleneck models. This suggests that the bottleneck itself---not just training on language---induces structured superposition, limiting the generalizability of our findings to standard architectures without explicit bottlenecks.
+
 \paragraph{Visualization limitations.} Our 2D and 3D visualizations necessarily project high-dimensional phenomena, potentially obscuring important structure. The interference heatmaps at large $n$ (768$\times$768) compress substantial detail.

@@ -1,0 +1,64 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: 00_main.aux
+The style file: tmlr.bst
+Database file #1: references.bib
+Repeated entry---line 151 of file references.bib
+ : @article{Olshausen1997Sparse
+ :                             ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 178 of file references.bib
+ : @article{Hubinger2023Privileged
+ :                                ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 260 of file references.bib
+ : @article{templeton2024scaling
+ :                              ,
+I'm skipping whatever remains of this entry
+Repeated entry---line 268 of file references.bib
+ : @article{elhage2021mathematical
+ :                                ,
+I'm skipping whatever remains of this entry
+Warning--I didn't find a database entry for "elhage2022"
+You've used 21 entries,
+            2773 wiz_defined-function locations,
+            712 strings with 10987 characters,
+and the built_in function-call counts, 16039 in all, are:
+= -- 1241
+> -- 1749
+< -- 7
++ -- 587
+- -- 564
+* -- 1558
+:= -- 2670
+add.period$ -- 79
+call.type$ -- 21
+change.case$ -- 249
+chr.to.int$ -- 19
+cite$ -- 42
+duplicate$ -- 452
+empty$ -- 746
+format.name$ -- 589
+if$ -- 3152
+int.to.chr$ -- 3
+int.to.str$ -- 1
+missing$ -- 21
+newline$ -- 129
+num.names$ -- 84
+pop$ -- 480
+preamble$ -- 1
+purify$ -- 228
+quote$ -- 0
+skip$ -- 470
+stack$ -- 0
+substring$ -- 234
+swap$ -- 51
+text.length$ -- 3
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 231
+warning$ -- 0
+while$ -- 80
+width$ -- 0
+write$ -- 298
+(There were 4 error messages)

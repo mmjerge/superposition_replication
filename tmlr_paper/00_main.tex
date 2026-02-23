@@ -105,8 +105,9 @@ Mechanistic interpretability seeks to illuminate the internal workings of traine
 \input{02_background}
 \input{03_replication}
 \input{04_experiments}
-% \input{04b_bridging}
 \input{05_results}
+\input{04b_bridging}
+\input{04c_empirical}
 \input{06_implications}
 \input{07_limitations}
 \input{08_conclusion}
@@ -126,7 +127,79 @@ Mechanistic interpretability seeks to illuminate the internal workings of traine
 \bibliographystyle{tmlr}
 
 \appendix
-\section{Appendix}
-% You may include other additional sections here.
+
+\section{Proofs}
+\label{app:proofs}
+
+\subsection{Proof of Theorem~\ref{thm:equivalence}}
+
+\textbf{Part (a):} Consider the autoencoder of \citet{elhage2022toy} with encoder $\mathbf{W} \in \mathbb{R}^{m \times n}$ and tied decoder $\mathbf{W}^\top$. For input $\mathbf{x} \in \mathbb{R}^n$ where each component $x_i \in \{0, 1\}$ activates independently with probability $p_i$, the reconstruction is $\hat{\mathbf{x}} = \text{ReLU}(\mathbf{W}^\top \mathbf{W} \mathbf{x})$.
+
+The expected squared reconstruction error is:
+\begin{align}
+\mathbb{E}[\|\mathbf{x} - \hat{\mathbf{x}}\|^2] &= \mathbb{E}\left[\sum_{i=1}^n (x_i - \hat{x}_i)^2\right] = \sum_{i=1}^n \mathbb{E}[(x_i - \hat{x}_i)^2]
+\end{align}
+
+For the $i$-th component, when $x_i = 1$ (with probability $p_i$):
+\begin{equation}
+\hat{x}_i = \text{ReLU}\left(\|\mathbf{w}_i\|^2 + \sum_{j \neq i} x_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle\right)
+\end{equation}
+
+Taking expectation and using the ReLU approximation for small interference (valid when features are sparse):
+\begin{align}
+\mathbb{E}[(x_i - \hat{x}_i)^2 | x_i = 1] &\approx \left(1 - \|\mathbf{w}_i\|^2\right)^2 + \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2
+\end{align}
+
+Therefore:
+\begin{align}
+\mathbb{E}[\|\mathbf{x} - \hat{\mathbf{x}}\|^2] &= \sum_{i=1}^n p_i \left[\left(1 - \|\mathbf{w}_i\|^2\right)^2 + \sum_{j \neq i} p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2\right] \\
+&= \sum_{i=1}^n p_i (1 - \|\mathbf{w}_i\|^2)^2 + \sum_{i \neq j} p_i p_j \langle \mathbf{w}_i, \mathbf{w}_j \rangle^2 = \mathcal{L}(\mathbf{W}, P) \text{ with } P_{ij} = p_i p_j \quad \square
+\end{align}
+
+\textbf{Part (b):} In the continuous chain-of-thought setting of \citet{zhu2025reasoning}, the model maintains a thought vector $\mathbf{h}_t$ that encodes multiple reasoning traces. For a graph reachability problem with $K$ valid partial paths, they show:
+\begin{equation}
+\mathbf{h}_t = \sum_{k=1}^K \alpha_k^{(t)} \mathbf{v}_k
+\end{equation}
+where $\mathbf{v}_k \in \mathbb{R}^m$ encodes trace $k$ and $\alpha_k^{(t)} = \text{softmax}(\text{logit}_k^{(t)})$.
+
+The attention mechanism optimizes for two competing objectives:
+\begin{enumerate}
+    \item \textbf{Preserve valid traces}: Each valid trace should be recoverable, requiring $\|\mathbf{v}_k\| \approx 1$.
+    \item \textbf{Minimize interference}: Valid traces that must coexist should not interfere, requiring $\langle \mathbf{v}_i, \mathbf{v}_j \rangle \approx 0$ when both are valid.
+\end{enumerate}
+
+Let $V \subseteq \{1, \ldots, K\}$ denote the set of valid traces. The implicit loss minimized by attention (as shown in \citet{zhu2025emergence} via analysis of training dynamics) is:
+\begin{equation}
+\mathcal{L}_{\text{reasoning}} = \sum_{k \in V} (1 - \|\mathbf{v}_k\|^2)^2 + \sum_{\substack{i, j \in V \\ i \neq j}} \langle \mathbf{v}_i, \mathbf{v}_j \rangle^2
+\end{equation}
+
+Setting $P_{ij} = \mathbf{1}[i \in V \land j \in V]$ and $p_i = \mathbf{1}[i \in V]$, we obtain $\mathcal{L}_{\text{reasoning}} = \mathcal{L}(\mathbf{W}, P)$. $\square$
+
+\subsection{Proof of Corollary~\ref{cor:capacity}}
+
+Let $\mathbf{G} = \mathbf{W}^\top \mathbf{W} \in \mathbb{R}^{n \times n}$ be the Gram matrix. The interference loss is:
+\begin{equation}
+\sum_{i \neq j} P_{ij} G_{ij}^2 \leq \epsilon
+\end{equation}
+
+By Cauchy-Schwarz, for unit-norm vectors, $|G_{ij}| \leq 1$. The number of pairs $(i,j)$ with $i \neq j$ and $P_{ij} > 0$ is at most $(1-S)n^2$.
+
+In $m$ dimensions, at most $m$ vectors can be mutually orthogonal. Additional vectors must have non-zero inner products with existing ones. By a packing argument, if we require $|G_{ij}|^2 \leq \epsilon / P_{ij}$ for all pairs with $P_{ij} > 0$, and using that the expected number of such pairs per vector is $(1-S)n$, the total number of vectors with significant norm is bounded by $m + \frac{m(m-1)}{2} \cdot \frac{S}{\epsilon}$. $\square$
+
+\subsection{Proof of Theorem~\ref{thm:timespace}}
+
+We proceed by induction on $T$.
+
+\textbf{Base case} ($T=1$): $\mathcal{M}_1(d)$ can represent functions on $d$-dimensional inputs, matching $\mathcal{M}_1(d \cdot 2^0) = \mathcal{M}_1(d)$.
+
+\textbf{Inductive step}: Assume $\mathcal{M}_T(d)$ can represent any function computable by $\mathcal{M}_1(d \cdot 2^{T-1})$. We show $\mathcal{M}_{T+1}(d)$ can represent functions computable by $\mathcal{M}_1(d \cdot 2^T)$.
+
+Consider a superposition of $K$ traces in $d \cdot 2^T$ dimensions. We can partition this into two groups of $d \cdot 2^{T-1}$ dimensions each. The first step of $\mathcal{M}_{T+1}(d)$ can use gating to separate these groups:
+\begin{equation}
+f_\theta(\mathbf{h}_0) = \mathbf{h}_1 \approx \sum_{k \in G_1} \alpha_k \mathbf{v}_k \quad \text{or} \quad \sum_{k \in G_2} \alpha_k \mathbf{v}_k
+\end{equation}
+depending on learned gates. The remaining $T$ steps then process each group, which by the inductive hypothesis can handle $d \cdot 2^{T-1}$ effective dimensions each.
+
+Since the model can route between groups and process each with $T$ steps, the total effective capacity is $2 \cdot d \cdot 2^{T-1} = d \cdot 2^T$. $\square$
 
 \end{document}
