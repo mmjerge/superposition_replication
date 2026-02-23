@@ -1,7 +1,7 @@
 \section{Bridging Representational and Reasoning Superposition}
 \label{sec:bridging}
 
-Recent work on chain-of-continuous-thought (Coconut) \citep{hao2024training} has introduced a distinct notion of superposition in the context of reasoning. While \citet{elhage2022toy} study \emph{representational superposition}---packing more features than dimensions---\citet{zhu2025reasoning} analyze \emph{reasoning superposition}---maintaining multiple reasoning traces simultaneously in latent space. We argue these phenomena are fundamentally connected and can be unified under a common mathematical framework.
+Recent work on chain-of-continuous-thought (Coconut) \citep{hao2024training} has introduced a distinct notion of superposition in the context of reasoning. While \citet{elhage2022toy} study \emph{representational superposition}---packing more features than dimensions---\citet{zhu2025reasoning} analyze \emph{reasoning superposition}---maintaining multiple reasoning traces simultaneously in latent space. We argue these phenomena are fundamentally connected and can be unified under a common mathematical framework. Critically, this is not merely a theoretical claim: Figure~\ref{fig:interference_comparison} shows that a representational model (\texttt{continuous\_thought}) and a reasoning model (\texttt{coconut}) trained on different objectives converge to geometrically indistinguishable encodings at the same bottleneck dimension $d=256$, providing direct empirical evidence for the unification.
 
 \subsection{Two Notions of Superposition}
 
@@ -81,7 +81,9 @@ n^* \leq m + \frac{m(m-1)}{2} \cdot \frac{S}{\epsilon}
 Thus, higher sparsity permits encoding more objects in superposition.
 \end{corollary}
 
-This corollary formalizes why both paradigms benefit from sparsity: in representational superposition, sparse feature activations reduce $P_{ij}$; in reasoning superposition, the branching structure of valid traces creates sparse co-validity patterns.
+This corollary formalizes why both paradigms benefit from sparsity: in representational superposition, sparse feature activations reduce $P_{ij}$; in reasoning superposition, the branching structure of valid traces creates sparse co-validity patterns. Empirically, this sparsity dependence is confirmed in Figure~\ref{fig:interference_sparsity}: at $p=1.0$ (no sparsity, maximum $P_{ij}$) the interference matrix is dense and chaotic, while at $p=0.05$ (high sparsity, small $P_{ij}$) the model finds near-structured encodings. The phase diagram (Figure~\ref{fig:geometric_analysis}) maps the full transition: yellow regions (low $p$, high importance) correspond to superposition regimes where sparsity enables features to share dimensions; blue regions (high $p$) correspond to the dense regime where features must be dropped or collapsed.
+
+The feature dimensionality curves (Figure~\ref{fig:feature_dim_curves}) further validate the corollary's quantitative prediction. Features undergo discontinuous transitions at a critical $p^*$ rather than smoothly degrading---exactly the behavior predicted when the interference cost $P_{ij} G_{ij}^2$ crosses the capacity benefit threshold.
 
 \subsection{Temporal Depth Compensates for Spatial Compression}
 
@@ -118,6 +120,8 @@ This theorem provides the theoretical foundation for our architectural design: c
     \item Iterative thought steps (4--8 iterations) provide temporal depth to compensate for spatial compression
     \item The gating mechanism allows selective unpacking of superposed features over time
 \end{enumerate}
+
+The emergence of equiangular structure during training (Figure~\ref{fig:weight_progression}) supports the mechanism: as training progresses, feature vectors spread from random initialization into approximately uniform angular configurations, consistent with the equiangular tight frame construction that achieves the Welch lower bound. Both the representational and reasoning models converge to this structure, indicating both are solving the same vector-packing problem. Furthermore, the polysemanticity analysis (Section~\ref{sec:results}) shows that 77\% of neurons in the $d=256$ bottleneck model are polysemantic, directly demonstrating that superposition is not a pathology of simple settings but persists in practical language models operating in the temporal-refinement regime.
 
 \subsection{Implications}
 
