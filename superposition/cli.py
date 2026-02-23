@@ -61,7 +61,7 @@ Examples:
     train_parser.add_argument(
         "--model", type=str,
         choices=["toy", "transformer", "translation", "computation", "continuous_thought", "coconut"],
-        default="toy", help="Model type to train",
+        default=None, help="Model type to train",
     )
     train_parser.add_argument("--config", type=str, help="Path to YAML config file")
     train_parser.add_argument("--preset", type=str, choices=list(PRESETS.keys()), help="Use a preset configuration")
@@ -93,6 +93,7 @@ Examples:
     analyze_parser = subparsers.add_parser(
         "analyze", help="Run analysis on a trained model"
     )
+    analyze_parser.add_argument("--preset", type=str, choices=list(PRESETS.keys()), help="Use a preset configuration (to match training config)")
     analyze_parser.add_argument(
         "--analysis", type=str, required=True,
         choices=["activations", "interference", "embeddings", "phase_diagram", "geometry"],
@@ -420,11 +421,19 @@ def run_analyze(args) -> None:
 
     logger.info(f"Analysis: {analysis_type} on {model_type} model")
 
+    def _get_config(default_preset: str) -> ExperimentConfig:
+        """Resolve config from --config, --preset, or a default preset."""
+        if args.config:
+            return ExperimentConfig.from_yaml(args.config)
+        if args.preset:
+            return PRESETS[args.preset]
+        return PRESETS[default_preset]
+
     # Load model
     if model_type == "toy":
         from superposition.models.toy import ToyModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["toy_small"]
+        config = _get_config("toy_small")
         model = ToyModel(
             num_features=config.model.num_features,
             num_hidden=config.model.num_hidden,
@@ -439,7 +448,7 @@ def run_analyze(args) -> None:
     elif model_type == "transformer":
         from superposition.models.transformer import TransformerModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["transformer_small"]
+        config = _get_config("transformer_small")
         model = TransformerModel(
             num_features=config.model.num_features,
             num_hidden=config.model.num_hidden,
@@ -456,7 +465,7 @@ def run_analyze(args) -> None:
     elif model_type == "translation":
         from superposition.models.translation import TranslationModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["translation"]
+        config = _get_config("translation")
         model = TranslationModel(
             base_model_name=config.model.base_model_name,
             hidden_size=config.model.num_hidden,
@@ -470,7 +479,7 @@ def run_analyze(args) -> None:
     elif model_type == "computation":
         from superposition.models.computation import ComputationModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["computation_abs"]
+        config = _get_config("computation_abs")
         model = ComputationModel(
             num_features=config.model.num_features,
             num_hidden=config.model.num_hidden,
@@ -487,7 +496,7 @@ def run_analyze(args) -> None:
     elif model_type == "continuous_thought":
         from superposition.models.continuous_thought import ContinuousThoughtModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["continuous_thought"]
+        config = _get_config("continuous_thought")
         model = ContinuousThoughtModel(
             base_model_name=config.model.coconut_base_model,
             bottleneck_dim=config.model.bottleneck_dim,
@@ -504,7 +513,7 @@ def run_analyze(args) -> None:
     elif model_type == "coconut":
         from superposition.models.coconut import CoconutBottleneckModel
 
-        config = ExperimentConfig.from_yaml(args.config) if args.config else PRESETS["coconut"]
+        config = _get_config("coconut")
         model = CoconutBottleneckModel(
             model_name=config.model.coconut_base_model,
             bottleneck_dim=config.model.bottleneck_dim,
@@ -527,10 +536,11 @@ def run_analyze(args) -> None:
         if model_type == "toy":
             compute_interference_per_instance(model, save_dir=args.save_dir)
         else:
-            # Include model type in filename to avoid overwriting
+            # Include preset or model type in filename to avoid overwriting
+            suffix = args.preset if args.preset else model_type
             compute_interference_heatmap(
                 model,
-                save_path=f"{args.save_dir}/interference_heatmap_{model_type}.png",
+                save_path=f"{args.save_dir}/interference_heatmap_{suffix}.png",
                 model_type=model_type,
             )
 

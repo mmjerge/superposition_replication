@@ -1,15 +1,17 @@
 \section{Limitations}
 
-We acknowledge several limitations of this work:
+We acknowledge several limitations of this work.
 
-\begin{enumerate}
-    \item \textbf{Scale of experiments:} Our transformer experiments use GPT-2-scale models (millions of parameters). Testing on larger models (e.g., Llama 3.2, Gemma 2) would strengthen claims about generalization but requires substantially more compute.
-    
-    \item \textbf{Synthetic features:} While our translation experiments use natural language, the transformer experiments rely on synthetic sparse features. The mapping between synthetic and natural features remains an open question.
-    
-    \item \textbf{Artificial bottleneck:} The translation model's bottleneck is not found in standard translation architectures. While it demonstrates superposition under constraint, it does not prove that standard models use the same strategies.
-    
-    \item \textbf{Visualization limitations:} Our 2D and 3D visualizations necessarily project high-dimensional phenomena, potentially obscuring important structure.
-    
-    \item \textbf{Incomplete replication:} Due to resource constraints, we did not replicate all findings from the original paper, particularly the geometry and learning dynamics results that the original authors flagged as ``more uncertain'' in their generalization.
-\end{enumerate}
+\paragraph{Scale of experiments.} Our transformer experiments use GPT-2-small-scale models (124M parameters). Testing on larger models (e.g., Llama, Gemma) would strengthen claims about generalization but requires substantially more compute.
+
+\paragraph{Synthetic features and artificial bottlenecks.} While our translation and continuous-thought experiments use natural language, the toy and transformer experiments rely on synthetic sparse features. The mapping between synthetic and natural features remains an open question. Relatedly, the bottleneck layers in our continuous thought and Coconut models are inserted post-hoc and are not found in standard architectures. While they demonstrate superposition under controlled compression, they do not prove that standard models use the same strategies internally.
+
+\paragraph{Welch bound gap.} Empirical coherence values are 4--8$\times$ the Welch bound (Table~\ref{tab:interference_metrics}), indicating that the theoretical lower bound is not tight for practical models. Better bounds that account for task-specific optimization pressure would strengthen the theoretical contribution.
+
+\paragraph{Sub-exponential time-space tradeoff.} The empirical capacity multiplier from iterative reasoning ($\sim$2--4$\times$) is substantially weaker than the theoretical maximum ($2^{T-1} = 8\times$ for $T = 4$). This gap may reflect imperfect gating, but we cannot rule out confounds from differences in training dynamics or effective feature sparsity between CT and CO models.
+
+\paragraph{Effective capacity metric.} The $n_{\text{eff}}$ metric at threshold $\|\mathbf{w}_i\| \geq 0.5$ returns zero for most bottleneck models, as the models distribute representational weight thinly across features (mean norms 0.12--0.50). This ``soft superposition'' regime is not well-captured by the binary threshold assumed in Corollary~\ref{cor:capacity}, suggesting the need for continuous capacity measures.
+
+\paragraph{Bottleneck dependence.} The no-bottleneck Coconut baseline ($50{,}261 \times 768$ embedding matrix) produces $\mu_{\max} = 1.0$ and only 0.07\% near-orthogonal pairs, lacking the clean superposition geometry of bottleneck models. This suggests that the bottleneck itself---not just training on language---induces structured superposition, limiting the generalizability of our findings to standard architectures without explicit bottlenecks.
+
+\paragraph{Visualization limitations.} Our 2D and 3D visualizations necessarily project high-dimensional phenomena, potentially obscuring important structure. The interference heatmaps at large $n$ (768$\times$768) compress substantial detail.

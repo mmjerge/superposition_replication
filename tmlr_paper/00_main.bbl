@@ -1,0 +1,196 @@
+\begin{thebibliography}{21}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Bengio et~al.(2013)Bengio, Courville, and
+  Vincent]{bengio2013representation}
+Yoshua Bengio, Aaron Courville, and Pascal Vincent.
+\newblock Representation learning: A review and new perspectives.
+\newblock \emph{IEEE transactions on pattern analysis and machine
+  intelligence}, 35\penalty0 (8):\penalty0 1798--1828, 2013.
+
+\bibitem[Bricken et~al.(2023)Bricken, Templeton, Batson, Chen, Jermyn, Conerly,
+  Turner, Anil, Denison, Askell, Lasenby, Wu, Kravec, Schiefer, Maxwell,
+  Joseph, Hatfield-Dodds, Tamkin, Nguyen, McLean, Burke, Hume, Carter,
+  Henighan, and Olah]{bricken2023monosemanticity}
+Trenton Bricken, Adly Templeton, Joshua Batson, Brian Chen, Adam Jermyn, Tom
+  Conerly, Nick Turner, Cem Anil, Carson Denison, Amanda Askell, Robert
+  Lasenby, Yifan Wu, Shauna Kravec, Nicholas Schiefer, Tim Maxwell, Nicholas
+  Joseph, Zac Hatfield-Dodds, Alex Tamkin, Karina Nguyen, Brayden McLean,
+  Josiah~E Burke, Tristan Hume, Shan Carter, Tom Henighan, and Christopher
+  Olah.
+\newblock Towards monosemanticity: Decomposing language models with dictionary
+  learning.
+\newblock \emph{Transformer Circuits Thread}, 2023.
+\newblock
+  https://transformer-circuits.pub/2023/monosemantic-features/index.html.
+
+\bibitem[Cammarata et~al.(2020)Cammarata, Carter, Goh, Olah, Petrov, Schubert,
+  Voss, Egan, and Lim]{cammarata2020thread}
+Nick Cammarata, Shan Carter, Gabriel Goh, Chris Olah, Michael Petrov, Ludwig
+  Schubert, Chelsea Voss, Ben Egan, and Swee~Kiat Lim.
+\newblock Thread: Circuits.
+\newblock \emph{Distill}, 2020.
+\newblock \doi{10.23915/distill.00024}.
+\newblock https://distill.pub/2020/circuits.
+
+\bibitem[Cettolo et~al.(2017)Cettolo, Federico, Bentivogli, Niehues, St{"u}ker,
+  Sudoh, Yoshino, and Federmann]{cettolo2017overview}
+Mauro Cettolo, Marcello Federico, Luisa Bentivogli, Jan Niehues, Sebastian
+  St{"u}ker, Katsuhito Sudoh, Koichiro Yoshino, and Christian Federmann.
+\newblock Overview of the iwslt 2017 evaluation campaign.
+\newblock In \emph{Proceedings of the 14th International Conference on Spoken
+  Language Translation}, pp.\  2--14, 2017.
+
+\bibitem[Donoho(2006)]{donoho2006compressed}
+David~L Donoho.
+\newblock Compressed sensing.
+\newblock \emph{IEEE Transactions on information theory}, 52\penalty0
+  (4):\penalty0 1289--1306, 2006.
+
+\bibitem[Elhage et~al.(2021)Elhage, Nanda, Olsson, Henighan, Joseph, Mann,
+  Askell, Bai, Chen, Conerly, DasSarma, Drain, Ganguli, Hatfield-Dodds,
+  Hernandez, Jones, Kernion, Lovitt, Ndousse, Amodei, Brown, Clark, Kaplan,
+  McCandlish, and Olah]{elhage2021mathematical}
+Nelson Elhage, Neel Nanda, Catherine Olsson, Tom Henighan, Nicholas Joseph, Ben
+  Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly, Nova DasSarma, Dawn
+  Drain, Deep Ganguli, Zac Hatfield-Dodds, Danny Hernandez, Andy Jones, Jackson
+  Kernion, Liane Lovitt, Kamal Ndousse, Dario Amodei, Tom Brown, Jack Clark,
+  Jared Kaplan, Sam McCandlish, and Chris Olah.
+\newblock A mathematical framework for transformer circuits.
+\newblock \emph{Transformer Circuits Thread}, 2021.
+\newblock https://transformer-circuits.pub/2021/framework/index.html.
+
+\bibitem[Elhage et~al.(2022{\natexlab{a}})Elhage, Hume, Olsson, Nanda,
+  Henighan, Johnston, ElShowk, Joseph, DasSarma, Mann,
+  et~al.]{elhage2022softmax}
+Nelson Elhage, Tristan Hume, Catherine Olsson, Neel Nanda, Tom Henighan, Scott
+  Johnston, Sheer ElShowk, Nicholas Joseph, Nova DasSarma, Ben Mann, et~al.
+\newblock Softmax linear units.
+\newblock \emph{Transformer Circuits Thread}, 2022{\natexlab{a}}.
+\newblock URL \url{https://transformer-circuits.pub/2022/solu/index.html}.
+
+\bibitem[Elhage et~al.(2022{\natexlab{b}})Elhage, Hume, Olsson, Schiefer,
+  Henighan, Kravec, Hatfield-Dodds, Lasenby, Drain, Chen,
+  et~al.]{elhage2022toy}
+Nelson Elhage, Tristan Hume, Catherine Olsson, Nicholas Schiefer, Tom Henighan,
+  Shauna Kravec, Zac Hatfield-Dodds, Robert Lasenby, Dawn Drain, Carol Chen,
+  et~al.
+\newblock Toy models of superposition.
+\newblock \emph{arXiv preprint arXiv:2209.10652}, 2022{\natexlab{b}}.
+\newblock URL \url{https://arxiv.org/abs/2209.10652}.
+
+\bibitem[Hao et~al.(2024)Hao, Gu, Ma, Hong, Wang, Wang, and
+  Hu]{hao2024training}
+Shibo Hao, Sainbayar Gu, Haotian Ma, Joshua~Jiahua Hong, Zhen Wang, Daisy~Zhe
+  Wang, and Zhiting Hu.
+\newblock Training large language models to reason in a continuous latent
+  space.
+\newblock \emph{arXiv preprint arXiv:2412.06769}, 2024.
+\newblock URL \url{https://arxiv.org/abs/2412.06769}.
+
+\bibitem[Henighan et~al.(2023)Henighan, Carter, Hume, Elhage, Lasenby, Fort,
+  Schiefer, and Olah]{henighan2023superposition}
+Tom Henighan, Shan Carter, Tristan Hume, Nelson Elhage, Robert Lasenby,
+  Stanislav Fort, Nicholas Schiefer, and Christopher Olah.
+\newblock Superposition, memorization, and double descent.
+\newblock \emph{Anthropic Technical Report}, January 2023.
+\newblock URL
+  \url{https://transformer-circuits.pub/2023/toy-double-descent/index.html}.
+
+\bibitem[Hubinger \& Hoelscher-Obermaier(2023)Hubinger and
+  Hoelscher-Obermaier]{hubinger2023privileged}
+Evan Hubinger and Johannes Hoelscher-Obermaier.
+\newblock Privileged bases in the transformer residual stream.
+\newblock \emph{Transformer Circuits Thread}, 2023.
+\newblock URL
+  \url{https://transformer-circuits.pub/2023/privileged-basis/index.html}.
+
+\bibitem[Mikolov et~al.(2013)Mikolov, Yih, and Zweig]{mikolov2013linguistic}
+Tomas Mikolov, Wen-tau Yih, and Geoffrey Zweig.
+\newblock Linguistic regularities in continuous space word representations.
+\newblock \emph{Proceedings of NAACL-HLT}, pp.\  746--751, 2013.
+
+\bibitem[Olah et~al.(2017)Olah, Mordvintsev, and Schubert]{olah2017feature}
+Chris Olah, Alexander Mordvintsev, and Ludwig Schubert.
+\newblock Feature visualization.
+\newblock \emph{Distill}, 2017.
+\newblock URL \url{https://distill.pub/2017/feature-visualization}.
+
+\bibitem[Olah et~al.(2020)Olah, Cammarata, Schubert, Goh, Petrov, and
+  Carter]{olah2020zoom}
+Chris Olah, Nick Cammarata, Ludwig Schubert, Gabriel Goh, Michael Petrov, and
+  Shan Carter.
+\newblock Zoom in: An introduction to circuits.
+\newblock \emph{Distill}, 2020.
+\newblock https://distill.pub/2020/circuits/zoom-in.
+
+\bibitem[Olshausen \& Field(1997)Olshausen and Field]{olshausen1997sparse}
+Bruno~A Olshausen and David~J Field.
+\newblock Sparse coding with an overcomplete basis set: A strategy employed by
+  v1?
+\newblock \emph{Vision research}, 37\penalty0 (23):\penalty0 3311--3325, 1997.
+
+\bibitem[Olsson et~al.(2022)Olsson, Elhage, Nanda, Joseph, DasSarma, Henighan,
+  Mann, Askell, Bai, Chen, Conerly, Drain, Ganguli, Hatfield-Dodds, Hernandez,
+  Johnston, Jones, Kernion, Lovitt, Ndousse, Amodei, Brown, Clark, Kaplan,
+  McCandlish, and Olah]{olsson2022context}
+Catherine Olsson, Nelson Elhage, Neel Nanda, Nicholas Joseph, Nova DasSarma,
+  Tom Henighan, Ben Mann, Amanda Askell, Yuntao Bai, Anna Chen, Tom Conerly,
+  Dawn Drain, Deep Ganguli, Zac Hatfield-Dodds, Danny Hernandez, Scott
+  Johnston, Andy Jones, Jackson Kernion, Liane Lovitt, Kamal Ndousse, Dario
+  Amodei, Tom Brown, Jack Clark, Jared Kaplan, Sam McCandlish, and Chris Olah.
+\newblock In-context learning and induction heads.
+\newblock \emph{Transformer Circuits Thread}, 2022.
+\newblock
+  https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html.
+
+\bibitem[Templeton et~al.(2024)Templeton, Conerly, Marcus, Lindsey, Bricken,
+  Chen, Pearce, Citro, Ameisen, Jones, Cunningham, Turner, McDougall,
+  MacDiarmid, Freeman, Sumers, Rees, Batson, Jermyn, Carter, Olah, and
+  Henighan]{templeton2024scaling}
+Adly Templeton, Tom Conerly, Jonathan Marcus, Jack Lindsey, Trenton Bricken,
+  Brian Chen, Adam Pearce, Craig Citro, Emmanuel Ameisen, Andy Jones, Hoagy
+  Cunningham, Nicholas~L Turner, Callum McDougall, Monte MacDiarmid, C.~Daniel
+  Freeman, Theodore~R. Sumers, Edward Rees, Joshua Batson, Adam Jermyn, Shan
+  Carter, Chris Olah, and Tom Henighan.
+\newblock Scaling monosemanticity: Extracting interpretable features from
+  claude 3 sonnet.
+\newblock \emph{Transformer Circuits Thread}, 2024.
+\newblock URL
+  \url{https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html}.
+
+\bibitem[Thorpe(1989)]{thorpe1989local}
+Simon~J Thorpe.
+\newblock Local vs. distributed coding.
+\newblock \emph{Intellectica}, 8:\penalty0 3--40, 1989.
+
+\bibitem[Tishby et~al.(2000)Tishby, Pereira, and Bialek]{tishby2000information}
+Naftali Tishby, Fernando~C Pereira, and William Bialek.
+\newblock The information bottleneck method.
+\newblock In \emph{Proceedings of the 37th Annual Allerton Conference on
+  Communication, Control, and Computing}, pp.\  368--377, 2000.
+
+\bibitem[Zhu et~al.(2025{\natexlab{a}})Zhu, Hao, Hu, Jiao, Russell, and
+  Tian]{zhu2025emergence}
+Hanlin Zhu, Shibo Hao, Zhiting Hu, Jiantao Jiao, Stuart Russell, and Yuandong
+  Tian.
+\newblock Emergence of superposition: Unveiling the training dynamics of chain
+  of continuous thought.
+\newblock \emph{arXiv preprint arXiv:2509.23365}, 2025{\natexlab{a}}.
+\newblock URL \url{https://arxiv.org/abs/2509.23365}.
+
+\bibitem[Zhu et~al.(2025{\natexlab{b}})Zhu, Hao, Hu, Jiao, Russell, and
+  Tian]{zhu2025reasoning}
+Hanlin Zhu, Shibo Hao, Zhiting Hu, Jiantao Jiao, Stuart Russell, and Yuandong
+  Tian.
+\newblock Reasoning by superposition: A theoretical perspective on chain of
+  continuous thought.
+\newblock \emph{arXiv preprint arXiv:2505.12514}, 2025{\natexlab{b}}.
+\newblock URL \url{https://arxiv.org/abs/2505.12514}.
+\newblock Accepted to NeurIPS 2025.
+
+\end{thebibliography}

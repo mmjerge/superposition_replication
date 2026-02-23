@@ -6,14 +6,7 @@ Having replicated the original findings, we now ask: \emph{Does superposition em
 
 \paragraph{Motivation.} The original superposition results used simple autoencoders. If superposition is fundamental to how neural networks manage limited capacity, it should also appear in transformers. We test this by adapting a GPT-2-style architecture to process the same synthetic sparse features.
 
-\paragraph{Architecture.} We use a transformer with the following configuration:
-\begin{itemize}
-    \item Hidden dimension: 64
-    \item Number of layers: 4
-    \item Attention heads: 4
-    \item Positions: 32
-    \item Input features: 128 (exceeding hidden dimension to encourage superposition)
-\end{itemize}
+\paragraph{Architecture.} We use a transformer with 64 hidden dimensions, 4 layers, 4 attention heads, and 32 positions, with the input features being 128, thus exceeding hidden dimension to encourage superposition.
 
 The model processes synthetic feature vectors $x \in \mathbb{R}^{128}$ generated with the same sparsity and importance distributions as the replication study. An input projection maps features to the hidden space, transformer layers process these representations, and an output projection with ReLU reconstructs the original features:
 \begin{equation}
@@ -50,3 +43,7 @@ L = -\sum_{t=1}^{T'} \log P(Y_{\text{true},t} \mid S)
 where $P(Y_{\text{true},t} \mid S)$ is the probability assigned by the model to the correct token at step $t$.
 
 \paragraph{Why this matters.} If the model maintains translation quality despite the severe bottleneck, it suggests superposition allows efficient encoding of linguistic features---the same phenomenon observed in toy models, now in a practical NLP setting.
+
+\subsection{Computation in Superposition}
+
+Beyond storage, we test whether networks can perform \emph{computation} on superposed features. We extend the toy autoencoder by inserting a nonlinear MLP between the encoder and decoder: $\mathbf{x} \to \mathbf{W}_{\text{enc}} \to \text{MLP} \to \mathbf{W}_{\text{dec}} \to \hat{\mathbf{y}}$, where $\hat{\mathbf{y}}$ approximates a target function (absolute value) applied element-wise to the input. The model uses $n = 10$ features compressed through $d = 3$ hidden dimensions (3.3$\times$ compression), with a 2-layer MLP (32 hidden units, ReLU) operating in the bottleneck space. Input features are drawn from $[-1, 1)$ to make the absolute value computation non-trivial. If the model learns accurate computation despite the bottleneck, it demonstrates that superposition supports not just feature storage but also nonlinear transformation of superposed representations.
