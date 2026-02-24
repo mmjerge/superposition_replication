@@ -7,11 +7,11 @@ The GPT-2-style transformer exhibits clear superposition patterns when processin
 
 \paragraph{Feature geometry (Figure~\ref{fig:transformer_features}).} We visualize the 128 feature directions from the input projection layer, projected onto two hidden dimensions. Features arrange themselves with approximately uniform angular spacing---the same geometric organization observed in toy autoencoders. This suggests the transformer has learned to minimize interference by distributing features evenly in the representational space.
 
-\paragraph{Effect of sparsity (Figure~\ref{fig:feature_analysis}).} The upper panels show feature norms (bar height) and polysemanticity (color intensity, green=low, yellow=high) for models trained with different sparsity levels. At low sparsity (0.070, features frequently active), the first $\sim$64 features (up to the hidden dimension, marked by dashed line) have high norms and low polysemanticity---they occupy dedicated dimensions. Features beyond this boundary have lower norms and higher polysemanticity, indicating superposition. At high sparsity (0.684, features rarely active), more features participate in superposition, with polysemanticity spread more evenly across features. The model exploits sparsity to represent more features.
+\paragraph{Effect of sparsity (Figure~\ref{fig:feature_analysis}).} We train models across 10 sparsity levels ranging from 0.070 (features frequently active) to 0.684 (features rarely active). The left column shows feature norms (bar height) and polysemanticity (color: blue/purple indicates low polysemanticity, yellow indicates high). At low sparsity, the first $\sim$64 features (up to the hidden dimension) have high norms and low polysemanticity---they occupy dedicated dimensions. Features beyond this boundary have lower norms and higher polysemanticity, indicating superposition. As sparsity increases (moving down the rows), more features participate in superposition, with polysemanticity spreading more evenly across features.
 
-The lower panels show weight correlation matrices ($\mathbf{W}^\top \mathbf{W}$), revealing feature interactions. Higher sparsity produces denser correlation patterns, indicating more feature sharing.
+The right column shows weight correlation matrices ($\mathbf{W}^\top \mathbf{W}$), revealing feature interactions. Higher sparsity produces denser off-diagonal correlation patterns, indicating more feature sharing---exactly as predicted by the unified loss framework.
 
-\paragraph{Dimensional fractions (Figure~\ref{fig:geometric_analysis}).} We analyze what fraction of a dimension each feature occupies. Features cluster around theoretically significant fractions ($1/2$, $2/3$, $3/4$), as predicted by the original paper's analysis of optimal feature packing. This clustering becomes more pronounced at higher inverse sparsity (more superposition), suggesting systematic organization rather than random interference.
+\paragraph{Phase diagram (Figure~\ref{fig:geometric_analysis}).} The phase diagram reveals three distinct regimes as a function of feature probability $p = 1 - S$ and relative importance. In the high-importance, low-probability regime (top-left, yellow), features maintain near-unit dimensionality $\|\mathbf{w}\|^2 \approx 1$, occupying dedicated dimensions. In the high-probability regime (right side, blue-purple), features are dropped from the representation entirely. The sharp boundary between these regimes confirms the critical sparsity threshold predicted by Corollary~\ref{cor:capacity}: superposition becomes beneficial only when sparsity exceeds a critical value.
 
 % Figure for transformer features
 \begin{figure}[t]
@@ -24,8 +24,8 @@ The lower panels show weight correlation matrices ($\mathbf{W}^\top \mathbf{W}$)
 % Figure for feature analysis
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=\textwidth]{figures/interference_heatmap.png}
-    \caption{\textbf{Feature analysis across superposition models.} \textbf{Top two panels (Sparsity 0.070):} Low sparsity setting. Upper: Feature norms (bar height) and polysemanticity (color: green=low, yellow=high). The dashed vertical line marks the hidden dimension ($d=64$); features to the right must be superposed. Lower: Weight correlation matrix ($\mathbf{W}^\top \mathbf{W}$) showing feature interactions. \textbf{Bottom two panels (Sparsity 0.684):} High sparsity setting shows more widespread superposition and denser correlations.}
+    \includegraphics[width=0.85\textwidth]{figures/replication_figure.png}
+    \caption{\textbf{Feature analysis across sparsity levels.} Each row corresponds to a different sparsity setting, from low sparsity (top, $p \approx 0.93$) to high sparsity (bottom, $p \approx 0.32$). \textbf{Left column:} Feature norms (bar height) and polysemanticity (color: blue/purple = monosemantic, yellow = polysemantic). At low sparsity, only the first $\sim$64 features (up to the hidden dimension) are well-represented; beyond this boundary, features must share dimensions. As sparsity increases, more features can be represented via superposition. \textbf{Right column:} Weight correlation matrices ($\mathbf{W}^\top \mathbf{W}$) showing feature interactions. Higher sparsity enables denser off-diagonal structure, indicating more features sharing dimensions.}
     \label{fig:feature_analysis}
 \end{figure*}
 
@@ -33,7 +33,7 @@ The lower panels show weight correlation matrices ($\mathbf{W}^\top \mathbf{W}$)
 \begin{figure}[t]
     \centering
     \includegraphics[width=\textwidth]{figures/phase_diagram.png}
-    \caption{\textbf{Phase diagram of mean feature dimensionality.} X-axis: feature probability $p = 1 - S$ (inverse sparsity). Y-axis: relative importance. Color: mean dimensionality $\|\mathbf{w}\|^2$. Yellow (top-left) indicates features with dedicated dimensions ($\|\mathbf{w}\|^2 \approx 1$); blue-purple indicates features dropped from representation. The sharp boundary between regimes is consistent with the critical sparsity threshold of Corollary~\ref{cor:capacity}: superposition is beneficial only when $S > 1 - d\tau/(n-d)^2$.}
+    \caption{\textbf{Phase diagram of mean feature dimensionality.} X-axis: feature probability $p = 1 - S$ (log scale). Y-axis: relative importance (log scale). Color: mean dimensionality $\|\mathbf{w}\|^2$. Yellow regions (sparse, high-importance) indicate features with dedicated dimensions ($\|\mathbf{w}\|^2 \approx 1$); blue-purple regions (dense or low-importance) indicate features dropped from representation. Annotations highlight the two limiting regimes: ``Dense $\to$ dedicated neurons'' (top-right) and ``Sparse + low importance $\to$ not represented'' (bottom-left). The sharp diagonal boundary confirms the critical sparsity threshold: superposition becomes beneficial only when sparsity exceeds a value that depends on importance.}
     \label{fig:geometric_analysis}
 \end{figure}
 
@@ -101,7 +101,7 @@ This convergence is the core empirical evidence for Theorem~\ref{thm:equivalence
 
 \subsection{Superposition Emerges Gradually During Training}
 
-Figure~\ref{fig:weight_progression} shows the evolution of feature weight vectors across training, from random initialization (step 0) to convergence (step 14,900). At initialization, features cluster near the origin with small, unsystematic directions. By step 5,000, features begin spreading toward unit norm. By step 14,900, features are distributed with approximately uniform angular spacing---the equiangular structure predicted by the Welch bound (Theorem~\ref{thm:equivalence}) as the tight-frame solution that minimizes $\sum_{i \neq j} G_{ij}^2$ given the capacity constraint.
+Figure~\ref{fig:weight_progression} shows the evolution of feature weight vectors across training, from random initialization (step 0) to convergence (step 14,900). At initialization, features cluster near the origin with small, unsystematic directions. By step 5,000, features begin spreading toward unit norm. By step 14,900, features are distributed with approximately uniform angular spacing---the equiangular structure predicted by the Welch bound as the tight-frame solution that minimizes $\sum_{i \neq j} G_{ij}^2$ given the capacity constraint.
 
 This progression has two implications. First, superposition is a learned strategy, not a random artifact: the model actively organizes features geometrically to minimize the unified loss. Second, the convergence toward equiangular structure supports the tightness of our capacity bounds (Corollary~\ref{cor:capacity}): the model converges to approximately the optimal packing, consistent with the ETF construction used in the lower bound proof.
 
